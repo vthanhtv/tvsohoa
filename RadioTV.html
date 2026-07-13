@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Radio Pro Master App</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.8/hls.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    /* --- HỆ THỐNG MÀU --- */
+    :root { --primary: #0a84ff; --bg-body: #0f0f10; --bg-card: #1c1c1e; --bg-nav: rgba(30, 30, 30, 0.95); --bg-input: #252525; --text-main: #ffffff; --text-sub: #888888; --border: #333333; --shadow: rgba(0,0,0,0.5); }
+    [data-theme="light"] { --bg-body: #f2f2f7; --bg-card: #ffffff; --bg-nav: rgba(255, 255, 255, 0.95); --bg-input: #e5e5ea; --text-main: #000000; --text-sub: #666666; --border: #d1d1d6; --shadow: rgba(0,0,0,0.1); }
+
+    /* --- CẤU TRÚC CHUNG --- */
+    body { margin: 0; padding: 0; background: var(--bg-body); color: var(--text-main); font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; transition: background 0.3s, color 0.3s; }
+    .app-content { flex: 1; overflow: hidden; position: relative; padding-bottom: 90px; }
+    .tab-section { display: none; height: 100%; overflow-y: auto; flex-direction: column; animation: fadein 0.3s; }
+    .tab-section.active { display: flex; }
+    @keyframes fadein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* MENU NỔI */
+    .floating-nav { position: fixed; bottom: 20px; left: 20px; right: 20px; background: var(--bg-nav); backdrop-filter: blur(15px); height: 65px; border-radius: 35px; display: flex; justify-content: space-around; align-items: center; box-shadow: 0 10px 25px var(--shadow); border: 1px solid var(--border); z-index: 1000; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-sub); font-size: 10px; cursor: pointer; width: 60px; height: 100%; }
+    .nav-item i { font-size: 20px; margin-bottom: 4px; }
+    .nav-item.active { color: var(--primary); }
+    .nav-item.active i { transform: translateY(-3px); }
+
+    /* --- SÓNG NHẠC --- */
+    .music-wave { display: flex; align-items: flex-end; height: 15px; gap: 2px; margin-left: 10px; margin-right: auto; }
+    .bar { width: 3px; background: var(--primary); animation: wave 1s infinite ease-in-out; }
+    .bar:nth-child(1) { animation-delay: 0.0s; height: 60%; } .bar:nth-child(2) { animation-delay: 0.1s; height: 80%; } .bar:nth-child(3) { animation-delay: 0.2s; height: 50%; } .bar:nth-child(4) { animation-delay: 0.3s; height: 70%; }
+    @keyframes wave { 0%, 100% { height: 40%; } 50% { height: 100%; } }
+
+    /* --- UI CHUNG --- */
+    .p-header { padding: 10px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); font-weight: bold; }
+    .btn-icon { background: none; border: none; color: var(--text-sub); font-size: 18px; cursor: pointer; padding: 8px; transition: 0.2s; position: relative; z-index: 5; }
+    .btn-icon:hover { color: var(--text-main); transform: scale(1.1); }
+    .btn-icon.loved { color: #ff3b30; }
+    
+    .app-brand-name { font-size: 16px; font-weight: 900; color: var(--primary); letter-spacing: 0.5px; text-transform: uppercase; background: -webkit-linear-gradient(45deg, var(--primary), #fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .live-clock-box { text-align: right; display: flex; flex-direction: column; justify-content: center; }
+    #clock-time { font-family: 'Roboto', sans-serif; font-weight: 900; font-size: 22px; color: var(--text-main); line-height: 1; letter-spacing: -0.5px; margin-bottom: 2px; }
+    #clock-date { font-size: 11px; color: #ffffff; font-weight: 700; text-transform: capitalize; text-shadow: 0 0 8px rgba(255, 255, 255, 0.8), 0 0 15px var(--primary); opacity: 0.95; }
+
+    /* --- PHẦN 1: KÊNH --- */
+    .p1-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 5px; }
+    .p1-tab { flex: 1; text-align: center; padding: 10px; font-size: 12px; color: var(--text-sub); cursor: pointer; font-weight: bold; }
+    .p1-tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+    .p1-container { padding: 0 10px; flex: 1; overflow-y: auto; transition: 0.3s; padding-bottom: 60px !important; }
+
+    .p1-item { background: transparent !important; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 10px 5px; margin-bottom: 0; border-radius: 0; display: flex; align-items: center; cursor: pointer; transition: 0.2s; }
+    .p1-item:active { background: rgba(255,255,255,0.05) !important; }
+    .p1-item.active-channel { background: linear-gradient(90deg, rgba(255,255,255,0.05), transparent) !important; border-left: 3px solid var(--primary); }
+    
+    /* Vùng chứa khung logo */
+    .logo-container { position: relative; width: 45px; height: 45px; margin-right: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .channel-logo { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.1); box-sizing: border-box; }
+    
+    /* Chữ LIVE thay thế logo: Chữ đỏ, nền trắng, không nhấp nháy, hiện nổi bật */
+    .live-replacement-box { width: 100%; height: 100%; border-radius: 50%; background: #ffffff; color: #ff3b30; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; border: 2px solid #ff3b30; text-transform: uppercase; letter-spacing: 0.5px; pointer-events: none; box-sizing: border-box; box-shadow: 0 0 10px rgba(255, 59, 48, 0.4); }
+
+    .p1-info { flex: 1; min-width: 0; margin: 0 10px; overflow: hidden; position: relative; display: block; }
+    .p1-name { font-weight: 600; font-size: 14px; color: var(--text-main); text-align: left; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+    .p1-item.active-channel .p1-name { width: auto; display: inline-block; color: var(--text-main); padding-left: 100%; animation: marqueeName 12s linear infinite; }
+    @keyframes marqueeName { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+
+    .p1-badge { font-size: 10px; background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 4px; color: var(--text-sub); margin-top: 2px; display: inline-block; width: fit-content; }
+    .p1-actions { display: flex; gap: 8px; align-items: center; margin-left: auto; }
+    .btn-power { font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; width: 40px; }
+    .btn-power.on { background: rgba(255,255,255,0.1); color: var(--text-sub); }
+    .btn-power.off { background: #ff3b30; color: white; }
+
+    /* --- TRÌNH PHÁT --- */
+    .p2-container { padding: 15px; flex: 1; overflow-y: auto; padding-bottom: 150px !important; }
+    .player-slot { background: var(--bg-card); border-radius: 12px; padding: 10px; margin-bottom: 10px; border-left: 5px solid var(--border); position: relative; }
+    .slot-1 { border-left-color: #0a84ff; } .slot-2 { border-left-color: #34c759; } .slot-3 { border-left-color: #ff9f0a; }
+    .slot-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 11px; color: var(--text-sub); }
+    
+    .vol-horizontal { display: flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border); margin-left: 10px; }
+    .vol-slider-h { -webkit-appearance: none; width: 100px; height: 6px; background: #555; border-radius: 3px; outline: none; cursor: pointer; accent-color: var(--primary); }
+    .vol-slider-h::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: #fff; border: 1px solid var(--primary); border-radius: 50%; cursor: pointer; }
+
+    .slot-select-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; background: var(--bg-body); padding: 6px; border-radius: 8px; border: 1px solid var(--border); position: relative; }
+    .mini-play-btn { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-main); cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .mini-play-btn.playing { background: #34c759; border-color: #34c759; color: white; }
+    
+    .channel-picker { flex: 1; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: var(--text-main); overflow: hidden; min-width: 0; }
+    .channel-picker span { display: block; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; padding-right: 5px; }
+    .slot-name-running { display: inline-block !important; flex: none !important; width: auto !important; padding-left: 100%; animation: marqueeName 12s linear infinite; color: var(--text-main); }
+    
+    .channel-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; max-height: 250px; overflow-y: auto; z-index: 50; margin-top: 5px; display: none; box-shadow: 0 5px 15px var(--shadow); }
+    .channel-dropdown.show { display: block; animation: fadein 0.2s; }
+    .dd-item { padding: 10px; border-bottom: 1px solid var(--border); font-size: 13px; cursor: pointer; color: var(--text-main); }
+    .dd-item:hover { background: var(--bg-input); }
+
+    .slot-controls { display: flex; align-items: center; justify-content: flex-end; }
+    .rec-wrapper { display: flex; align-items: center; gap: 8px; background: var(--bg-body); padding: 4px 8px; border-radius: 25px; border: 1px solid var(--border); }
+    .rec-timer { font-family: monospace; color: var(--text-sub); font-size: 12px; min-width: 40px; text-align: center; }
+    .rec-timer.recording { color: #ff3b30; font-weight: bold; }
+    .rec-timer.paused { color: #ff9f0a; animation: blink 1s infinite; }
+    .rec-btns-group { display: flex; align-items: center; gap: 5px; } 
+    .btn-rec-act { width: auto !important; height: 24px; padding: 0 8px; border-radius: 4px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+    .btn-mic { background: none; color: var(--text-sub); font-size: 16px; width: 30px !important; padding: 0; } 
+    .btn-mic:hover { color: var(--text-main); }
+    .btn-pause { background: #ff9f0a; color: black; } .btn-resume { background: #34c759; color: white; } .btn-stop { background: #ff3b30; color: white; } 
+    .hidden { display: none !important; }
+
+    /* --- KHO LƯU TRỮ --- */
+    .p3-container { padding: 15px; flex: 1; overflow-y: auto; padding-bottom: 100px; }
+    .saved-item { background: var(--bg-card); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: block; border: 1px solid var(--border); }
+    .saved-info { font-size: 13px; color: var(--text-main); margin-bottom: 8px; }
+    .saved-time { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+    .saved-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .btn-text { border: none; border-radius: 4px; padding: 5px 12px; font-size: 11px; font-weight: bold; cursor: pointer; color: white; text-decoration: none; display: inline-block; transition: 0.2s; }
+    .btn-text.play { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); }
+    .btn-text.play.active { background: #34c759; border-color: #34c759; color: white; }
+    .btn-text.down { background: var(--primary); } .btn-text.del { background: #ff3b30; }
+
+    /* --- CÀI ĐẶT & MODAL --- */
+    .settings-container { padding: 20px; flex: 1; overflow-y: auto; padding-bottom: 100px; }
+    .setting-group { background: var(--bg-card); border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 1px solid var(--border); }
+    .group-title { font-size: 12px; color: var(--text-sub); text-transform: uppercase; margin-bottom: 15px; font-weight: bold; }
+    .setting-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .setting-label { font-size: 14px; color: var(--text-main); font-weight: 500; }
+    .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--bg-input); transition: .4s; border-radius: 34px; border: 1px solid var(--border); }
+    .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    input:checked + .slider { background-color: var(--primary); }
+    input:checked + .slider:before { transform: translateX(22px); }
+    .color-options { display: flex; gap: 15px; }
+    .color-circle { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+    .color-circle.selected { border-color: var(--text-main); transform: scale(1.1); }
+
+    #add-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: none; align-items: center; justify-content: center; }
+    .modal-box { background: var(--bg-card); padding: 20px; border-radius: 12px; width: 90%; max-width: 380px; border: 1px solid var(--border); max-height: 80vh; display: flex; flex-direction: column; }
+    .inp-modal { width: 100%; box-sizing: border-box; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 13px; }
+    .modal-btns { display: flex; gap: 10px; margin-top: 10px; }
+    .btn-modal-save { flex: 1; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .btn-modal-del { flex: 1; padding: 10px; background: #ff3b30; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: none; }
+    .manage-area { margin-top: 15px; border-top: 1px solid var(--border); padding-top: 10px; flex: 1; overflow-y: auto; }
+    .manage-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg-input); padding: 8px 10px; border-radius: 6px; margin-bottom: 5px; border: 1px solid var(--border); }
+    .manage-tools i { font-size: 14px; cursor: pointer; padding: 5px; color: var(--text-sub); } .manage-tools i.edit { color: var(--primary); } .manage-tools i.del { color: #ff3b30; }
+
+    @keyframes blink { 50% { opacity: 0.5; } }
+</style>
+</head>
+<body>
+
+    <div class="app-content">
+
+        <div id="tab-1" class="tab-section active">
+            <div class="p-header">
+                <div class="app-brand-name">NGHE RADIO</div>
+                <div style="display:flex; align-items:center; gap: 15px;">
+                    <button class="btn-icon" onclick="openAddModal()" style="color:var(--primary); border:1px solid var(--border); border-radius:50%; width:35px; height:35px; display:flex; align-items:center; justify-content:center;">
+                        <i class="fa-solid fa-plus" style="font-size:16px"></i>
+                    </button>
+                    <div class="live-clock-box">
+                        <div id="clock-time">00:00:00</div>
+                        <div id="clock-date">--/--/----</div>
+                    </div>
+                </div>
+            </div>
+            <div class="p1-tabs">
+                <div class="p1-tab active" id="subtab-all" onclick="switchSubTab('all')">TẤT CẢ</div>
+                <div class="p1-tab" id="subtab-fav" onclick="switchSubTab('fav')">YÊU THÍCH</div>
+            </div>
+            <div class="p1-container" id="channel-list-container"></div>
+        </div>
+
+        <div id="tab-2" class="tab-section">
+            <div class="p-header" style="justify-content:center">TRÌNH PHÁT</div>
+            <div class="p2-container">
+                <div class="player-slot slot-1">
+                    <div class="slot-top">
+                        <div style="display:flex; align-items:center">
+                            <span>SLOT 1</span>
+                            <div class="vol-horizontal">
+                                <i class="fa-solid fa-volume-low" style="font-size:10px; color:var(--text-sub)"></i>
+                                <input type="range" class="vol-slider-h" min="0" max="1" step="0.1" value="1" oninput="setVolume(0, this.value)">
+                            </div>
+                        </div>
+                        <span id="s1-st">Sẵn sàng</span>
+                    </div>
+                    <div class="slot-select-row">
+                        <button class="mini-play-btn" id="mini-p1" onclick="togRadio(0)"><i class="fa-solid fa-play"></i></button>
+                        <div class="channel-picker" onclick="toggleDropdown(0)"><span id="s1-name">Chọn kênh...</span><i class="fa-solid fa-caret-down"></i></div>
+                        <div id="dd-0" class="channel-dropdown"></div>
+                    </div>
+                    <div class="slot-controls">
+                        <div class="rec-wrapper">
+                            <span class="rec-timer" id="rt-0">00:00</span>
+                            <button class="btn-rec-act btn-mic" id="mic-0" onclick="startRec(0)"><i class="fa-solid fa-microphone"></i></button>
+                            <div class="rec-btns-group hidden" id="rec-btns-0">
+                                <button class="btn-rec-act btn-pause" id="pause-0" onclick="pauseRec(0)">TẠM DỪNG</button>
+                                <button class="btn-rec-act btn-stop" onclick="stopRec(0)">DỪNG</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-slot slot-2">
+                    <div class="slot-top">
+                        <div style="display:flex; align-items:center">
+                            <span>SLOT 2</span>
+                            <div class="vol-horizontal">
+                                <i class="fa-solid fa-volume-low" style="font-size:10px; color:var(--text-sub)"></i>
+                                <input type="range" class="vol-slider-h" min="0" max="1" step="0.1" value="1" oninput="setVolume(1, this.value)">
+                            </div>
+                        </div>
+                        <span id="s2-st">Sẵn sàng</span>
+                    </div>
+                    <div class="slot-select-row">
+                        <button class="mini-play-btn" id="mini-p2" onclick="togRadio(1)"><i class="fa-solid fa-play"></i></button>
+                        <div class="channel-picker" onclick="toggleDropdown(1)"><span id="s2-name">Chọn kênh...</span><i class="fa-solid fa-caret-down"></i></div>
+                        <div id="dd-1" class="channel-dropdown"></div>
+                    </div>
+                    <div class="slot-controls">
+                        <div class="rec-wrapper">
+                            <span class="rec-timer" id="rt-1">00:00</span>
+                            <button class="btn-rec-act btn-mic" id="mic-1" onclick="startRec(1)"><i class="fa-solid fa-microphone"></i></button>
+                            <div class="rec-btns-group hidden" id="rec-btns-1">
+                                <button class="btn-rec-act btn-pause" id="pause-1" onclick="pauseRec(1)">TẠM DỪNG</button>
+                                <button class="btn-rec-act btn-stop" onclick="stopRec(1)">DỪNG</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-slot slot-3">
+                    <div class="slot-top">
+                        <div style="display:flex; align-items:center">
+                            <span>SLOT 3</span>
+                            <div class="vol-horizontal">
+                                <i class="fa-solid fa-volume-low" style="font-size:10px; color:var(--text-sub)"></i>
+                                <input type="range" class="vol-slider-h" min="0" max="1" step="0.1" value="1" oninput="setVolume(2, this.value)">
+                            </div>
+                        </div>
+                        <span id="s3-st">Sẵn sàng</span>
+                    </div>
+                    <div class="slot-select-row">
+                        <button class="mini-play-btn" id="mini-p3" onclick="togRadio(2)"><i class="fa-solid fa-play"></i></button>
+                        <div class="channel-picker" onclick="toggleDropdown(2)"><span id="s3-name">Chọn kênh...</span><i class="fa-solid fa-caret-down"></i></div>
+                        <div id="dd-2" class="channel-dropdown"></div>
+                    </div>
+                    <div class="slot-controls">
+                        <div class="rec-wrapper">
+                            <span class="rec-timer" id="rt-2">00:00</span>
+                            <button class="btn-rec-act btn-mic" id="mic-2" onclick="startRec(2)"><i class="fa-solid fa-microphone"></i></button>
+                            <div class="rec-btns-group hidden" id="rec-btns-2">
+                                <button class="btn-rec-act btn-pause" id="pause-2" onclick="pauseRec(2)">TẠM DỪNG</button>
+                                <button class="btn-rec-act btn-stop" onclick="stopRec(2)">DỪNG</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <audio id="rad-0" crossorigin="anonymous"></audio>
+            <audio id="rad-1" crossorigin="anonymous"></audio>
+            <audio id="rad-2" crossorigin="anonymous"></audio>
+        </div>
+
+        <div id="tab-3" class="tab-section">
+            <div class="p-header" style="justify-content:center">KHO LƯU TRỮ</div>
+            <div class="p3-container" id="saved-list"></div>
+            <audio id="preview-audio"></audio>
+        </div>
+
+        <div id="tab-5" class="tab-section">
+            <div class="p-header" style="justify-content:center">CÀI ĐẶT</div>
+            <div class="settings-container">
+                <div class="setting-group">
+                    <div class="group-title">Giao diện</div>
+                    <div class="setting-item">
+                        <span class="setting-label">Chế độ Sáng (Light Mode)</span>
+                        <label class="switch"><input type="checkbox" id="theme-toggle" onchange="toggleTheme()"><span class="slider"></span></label>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <div class="group-title">Màu chủ đạo</div>
+                    <div class="color-options">
+                        <div class="color-circle selected" style="background:#0a84ff" onclick="setAccent('#0a84ff', this)"></div>
+                        <div class="color-circle" style="background:#ff9f0a" onclick="setAccent('#ff9f0a', this)"></div>
+                        <div class="color-circle" style="background:#34c759" onclick="setAccent('#34c759', this)"></div>
+                        <div class="color-circle" style="background:#bf5af2" onclick="setAccent('#bf5af2', this)"></div>
+                        <div class="color-circle" style="background:#ff375f" onclick="setAccent('#ff375f', this)"></div>
+                    </div>
+                </div>
+                <div style="text-align:center;margin-top:30px;color:var(--text-sub);font-size:12px;">Radio Pro Master v2.1</div>
+            </div>
+        </div>
+
+    </div>
+
+    <nav class="floating-nav">
+        <div class="nav-item active" onclick="switchTab(1, this)"><i class="fa-solid fa-list-ul"></i><span>Radio FM</span></div>
+        <div class="nav-item" onclick="switchTab(2, this)"><i class="fa-solid fa-sliders"></i><span>Trình phát</span></div>
+        <div class="nav-item" onclick="switchTab(3, this)"><i class="fa-solid fa-box-archive"></i><span>Đã ghi</span></div>
+        <div class="nav-item" onclick="switchTab(5, this)"><i class="fa-solid fa-gear"></i><span>Cài đặt</span></div>
+    </nav>
+
+    <div id="add-modal" onclick="if(event.target==this)closeModal()">
+        <div class="modal-box">
+            <h3 style="margin-top:0;text-align:center;color:var(--text-main)" id="modal-title">Thêm / Sửa Kênh</h3>
+            <input type="text" id="inp-name" class="inp-modal" placeholder="Tên kênh...">
+            <input type="text" id="inp-url" class="inp-modal" placeholder="Link (M3U8/MP3)...">
+            <div style="display:flex; gap:5px; margin-bottom: 10px;">
+                <input type="text" id="inp-logo-text" class="inp-modal" placeholder="Chữ Logo (VD: VTV)..." style="flex:2; margin-bottom:0;">
+                <select id="inp-logo-color" class="inp-modal" style="flex:1; margin-bottom:0;">
+                    <option value="d32f2f">Đỏ</option>
+                    <option value="0a84ff">Xanh</option>
+                    <option value="F57C00">Cam</option>
+                    <option value="673AB7">Tím</option>
+                    <option value="random">Ngẫu nhiên</option>
+                </select>
+            </div>
+            <input type="hidden" id="inp-id">
+            <div class="modal-btns">
+                <button class="btn-modal-save" onclick="saveChannel()">LƯU LẠI</button>
+                <button id="btn-modal-del" class="btn-modal-del" onclick="deleteCurrentChannel()">XÓA / ẨN</button>
+            </div>
+            <div class="manage-area">
+                <div style="font-size:11px;color:var(--text-sub);font-weight:bold;margin-bottom:5px">DANH SÁCH ĐÃ THÊM</div>
+                <div id="manage-list"></div>
+            </div>
+            <div style="text-align:center;margin-top:15px;font-size:12px;color:var(--text-sub);cursor:pointer" onclick="closeModal()">Đóng</div>
+        </div>
+    </div>
+
+<script>
+    // --- THEME & SETUP ---
+    let currentTheme = 'dark';
+    window.onload = () => {
+        loadCustomChannels(); loadSavedRecs();
+        let saved = localStorage.getItem('app_theme');
+        if(saved === 'light') { document.documentElement.setAttribute('data-theme', 'light'); document.getElementById('theme-toggle').checked = true; currentTheme='light'; }
+        let savedColor = localStorage.getItem('app_color'); if(savedColor) setAccent(savedColor, null);
+        loadFavs(); renderChannels();
+        if(typeof startRealTimeClock === 'function') startRealTimeClock();
+    };
+
+    function toggleTheme() {
+        if(document.getElementById('theme-toggle').checked) { document.documentElement.setAttribute('data-theme', 'light'); currentTheme='light'; localStorage.setItem('app_theme', 'light'); }
+        else { document.documentElement.removeAttribute('data-theme'); currentTheme='dark'; localStorage.setItem('app_theme', 'dark'); }
+    }
+    function setAccent(color, el) {
+        document.documentElement.style.setProperty('--primary', color); localStorage.setItem('app_color', color);
+        if(el) { document.querySelectorAll('.color-circle').forEach(c => c.classList.remove('selected')); el.classList.add('selected'); }
+    }
+
+    // --- DATA ---
+    let channels = [
+        // --- NHÓM VOV (Màu Đỏ: d32f2f) ---
+        {id: 1, name: "VOV Giao Thông Hà Nội", url: "https://play.vovgiaothong.vn/live/gthn/playlist.m3u8", img: "https://ui-avatars.com/api/?name=VOV&background=d32f2f&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 2, name: "VOV Giao Thông Hồ Chí Minh", url: "https://play.vovgiaothong.vn/live/gthcm/playlist.m3u8", img: "https://ui-avatars.com/api/?name=VOV&background=d32f2f&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 3, name: "Mekong FM90MHz", url: "https://play.vovgiaothong.vn/live/mekong/playlist.m3u8", img: "https://ui-avatars.com/api/?name=VOV&background=d32f2f&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 4, name: "Duyên Hải FM91MHz", url: "https://play.vovgiaothong.vn/live/duyenhai/playlist.m3u8", img: "https://ui-avatars.com/api/?name=VOV&background=d32f2f&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 5, name: "VOV Plus - Giao Thông Hà Nội", url: "https://audio-lss.vov.vn/live/giao_thong_ha_noi.m3u8", img: "https://ui-avatars.com/api/?name=VOV&background=d32f2f&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 6, name: "VOV Plus - VOV1 - Thời sự", url: "https://audio-lss.vov.vn/live/vov1.m3u8", img: "https://ui-avatars.com/api/?name=VOV&background=d32f2f&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 7, name: "VOV Plus - VOV2 - Văn hóa", url: "https://audio-lss.vov.vn/live/vov2.m3u8", img: "https://ui-avatars.com/api/?name=VOV&background=d32f2f&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 8, name: "VOV Plus - VOV3 - Âm nhạc", url: "https://audio-lss.vov.vn/live/vov3.m3u8", img: "https://ui-avatars.com/api/?name=VOV&background=d32f2f&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 9, name: "VOV Plus - VOV4 - Dân tộc", url: "https://audio-lss.vov.vn/live/vov4.m3u8", img: "https://ui-avatars.com/api/?name=VOV&background=d32f2f&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 10, name: "VOV Plus - VOV5 - Đối ngoại", url: "https://audio-lss.vov.vn/live/vov5.m3u8", img: "https://ui-avatars.com/api/?name=VOV&background=d32f2f&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 11, name: "VOV Plus -VOV247 - Tiếng Anh", url: "https://audio-lss.vov.vn/live/vov24_7.m3u8", img: "https://ui-avatars.com/api/?name=VOV&background=d32f2f&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+
+        // --- NHÓM VOH (Màu Xanh: 007f4e) ---
+        {id: 12, name: "VOH FM95.6", url: "https://1011337676.vnns.net/-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1cmkiOiIvaHR2Yy9WT0gtRk05NS42LmFkbS50bXMvIiwiZXhwIjoxOTI0OTI1MjI4fQ.isr2nlUkXOPGSxT-KT8FcZQFCcXn58RZrCyqoB3zDGg-/htvc/VOH-FM95.6.adm.tms/playlist.m3u8", img: "https://ui-avatars.com/api/?name=VOH&background=007f4e&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 13, name: "VOH FM87.7", url: "https://1011337676.vnns.net/-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1cmkiOiIvaHR2Yy9WT0gtRk04Ny43LmFkbS50bXMvIiwiZXhwIjoxOTI0OTI1MjI4fQ.uqGbd46T32wvTu5qrL2cOng9Vsf7ZHbSTE10PHpP2bE-/htvc/VOH-FM87.7.adm.tms/playlist.m3u8", img: "https://ui-avatars.com/api/?name=VOH&background=007f4e&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 14, name: "VOH FM99.9", url: "https://1011337676.vnns.net/-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1cmkiOiIvaHR2Yy9WT0gtRk05OS45LmFkbS50bXMvIiwiZXhwIjoxOTI0OTI1MjI4fQ.zVLoKcCW3tFLySpEQHcYh11PHIxk2ZE1pj5P-GFIm1I-/htvc/VOH-FM99.9.adm.tms/playlist.m3u8", img: "https://ui-avatars.com/api/?name=VOH&background=007f4e&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 15, name: "VOH AM610", url: "https://1011337676.vnns.net/-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1cmkiOiIvaHR2Yy9WT0gtQU02MTAuYWRtLnRtcy8iLCJleHAiOjE5MjQ5MjUyMjh9.dAa1es3LlAVnvQ-oLGNBqfEI0yz7fPrjEML_rJAklMQ-/htvc/VOH-AM610.adm.tms/playlist.m3u8", img: "https://ui-avatars.com/api/?name=VOH&background=007f4e&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 16, name: "VOH Mekong 92.5", url: "https://1011337676.vnns.net/-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1cmkiOiIvaHR2Yy9WT0gtRk05Mi41LmFkbS50bXMvIiwiZXhwIjoxOTI0OTI1MjI4fQ.u5XcdU9KljAz3HgehDbCBbNEvSzWNAQTEKkU-DwH2K8-/htvc/VOH-FM92.5.adm.tms/chunks.m3u8", img: "https://ui-avatars.com/api/?name=VOH&background=007f4e&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+
+        // --- NHÓM HÀ NỘI (Màu Cam: F57C00) ---
+        {id: 17, name: "Hà Nội 96Mhz", url: "http://222.252.21.96:8000/HANOI96", img: "https://ui-avatars.com/api/?name=H&background=F57C00&color=fff&size=128&font-size=0.5", fav: false, isCustom: false},
+        {id: 18, name: "Hà Nội 90Mhz", url: "http://14.162.146.90:8000/HANOI90", img: "https://ui-avatars.com/api/?name=H&background=F57C00&color=fff&size=128&font-size=0.5", fav: false, isCustom: false},
+
+        // --- NHÓM VOV MEDIA(Màu Xanh: 0327ff) ---
+        {id: 19, name: "Giao Thông Hà Nội", url: "http://mediard.kythuatvov.vn:9083/:stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 20, name: "Giao Thông Hồ Chí Minh", url: "http://mediard.kythuatvov.vn:9080/:stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 21, name: "Mekong", url: "http://mediard.kythuatvov.vn:9085/:stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 22, name: "Duyên Hải", url: "http://mediard.kythuatvov.vn:9087/:stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 23, name: "VOV1", url: "http://mediard.kythuatvov.vn:9010/:stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 24, name: "VOV2", url: "http://mediard.kythuatvov.vn:9020/:stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 25, name: "VOV3", url: "http://mediard.kythuatvov.vn:9030/:stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 26, name: "VOV Tây Bắc & Đông Bắc", url: "http://mediard.kythuatvov.vn:9042/:stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 27, name: "VOV Miền Trung", url: "http://mediard.kythuatvov.vn:9040/:stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 28, name: "VOV Tây Nguyên", url: "http://mediard.kythuatvov.vn:9044/:stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 29, name: "VOV Hồ Chí Minh", url: "http://mediard.kythuatvov.vn:9048/:stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 30, name: "VOV ĐB Sông Cửu Long", url: "http://mediard.kythuatvov.vn:9046/:stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 31, name: "VOV5 Đối ngoại", url: "http://mediard.kythuatvov.vn:9050/:stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 32, name: "VOV English 24/7", url: "http://mediard.kythuatvov.vn:20017/:stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&size=128&font-size=0.4&length=3", fav: false, isCustom: false},
+        {id: 33, name: "VOV5 - ThaiLan", url: "http://media.kythuatvov.vn:1313/;stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&length=3", fav: false, isCustom: false},
+        {id: 34, name: "VOV5 - French", url: "http://media.kythuatvov.vn:1329/;stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&length=3", fav: false, isCustom: false},
+        {id: 35, name: "VOV5 - German", url: "http://media.kythuatvov.vn:1325/;stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&length=3", fav: false, isCustom: false},
+        {id: 36, name: "VOV5 - Khmer", url: "http://media.kythuatvov.vn:1301/;stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&length=3", fav: false, isCustom: false},
+        {id: 37, name: "VOV5 - Laotian", url: "http://media.kythuatvov.vn:1305/;stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&length=3", fav: false, isCustom: false},
+        {id: 38, name: "VOV5 - Spanish", url: "http://media.kythuatvov.vn:1317/;stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&length=3", fav: false, isCustom: false},
+        {id: 39, name: "VOV5 - Russian", url: "http://media.kythuatvov.vn:1331/;stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&length=3", fav: false, isCustom: false},
+        {id: 40, name: "VOV5 - Japanese", url: "http://media.kythuatvov.vn:1335/;stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&length=3", fav: false, isCustom: false},
+        {id: 41, name: "VOV5 - Indonesian", url: "http://media.kythuatvov.vn:1309/;stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&length=3", fav: false, isCustom: false},
+        {id: 42, name: "VOV5 - Korean", url: "http://media.kythuatvov.vn:1331/;stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&length=3", fav: false, isCustom: false},
+        {id: 43, name: "VOV5 - Chinese", url: "http://media.kythuatvov.vn:1333/;stream.mp3", img: "https://ui-avatars.com/api/?name=VOV&background=0327ff&color=fff&length=3", fav: false, isCustom: false},
+   ];
+    let savedRecs = []; let currentSubTab = 'all';
+
+    function loadFavs() { const stored = localStorage.getItem('radio_favs'); if (stored) { const favIds = JSON.parse(stored); channels.forEach(ch => { if(favIds.includes(ch.id)) ch.fav = true; }); } }
+    function saveFavs() { const favIds = channels.filter(c => c.fav).map(c => c.id); localStorage.setItem('radio_favs', JSON.stringify(favIds)); }
+
+    function switchTab(id, el) {
+        document.querySelectorAll('.tab-section').forEach(d => d.classList.remove('active'));
+        document.getElementById(`tab-${id}`).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(d => d.classList.remove('active'));
+        el.classList.add('active');
+        if(id === 1) renderChannels();
+    }
+    function switchSubTab(type) { currentSubTab = type; document.getElementById('subtab-all').className = `p1-tab ${type=='all'?'active':''}`; document.getElementById('subtab-fav').className = `p1-tab ${type=='fav'?'active':''}`; renderChannels(); }
+    
+    function togFav(id) { let ch = channels.find(c => c.id === id); if(ch) { ch.fav = !ch.fav; saveFavs(); renderChannels(); } }
+
+    function openAddModal() { document.getElementById('add-modal').style.display = 'flex'; document.getElementById('inp-id').value = ""; document.getElementById('inp-name').value = ""; document.getElementById('inp-url').value = ""; document.getElementById('btn-modal-del').style.display = "none"; renderManageList(); }
+    function closeModal() { document.getElementById('add-modal').style.display = 'none'; }
+    
+    function saveChannel() {
+        let name = document.getElementById('inp-name').value; let url = document.getElementById('inp-url').value; let id = document.getElementById('inp-id').value;
+        let logoText = document.getElementById('inp-logo-text').value.trim(); let logoColor = document.getElementById('inp-logo-color').value;
+        if(!name || !url) return;
+        let txt = logoText ? logoText : name.substring(0,3).toUpperCase();
+        let bg = logoColor === 'random' ? 'random' : logoColor;
+        let imgUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(txt)}&background=${bg}&color=fff&size=128&length=3&font-size=0.4`;
+        if (id) { let ch = channels.find(c => c.id == id); if(ch) { ch.name = name; ch.url = url; ch.img = imgUrl; } } 
+        else { channels.push({ id: Date.now(), name: name, url: url, img: imgUrl, fav: false, isCustom: true }); }
+        
+        localStorage.setItem('custom_channels', JSON.stringify(channels.filter(c => c.isCustom)));
+        renderManageList(); renderChannels(); closeModal();
+    } 
+    function renderManageList() {
+        const list = document.getElementById('manage-list'); list.innerHTML = "";
+        let customCh = channels.filter(c => c.isCustom);
+        if(customCh.length === 0) { list.innerHTML = `<div style="text-align:center;color:var(--text-sub);font-size:12px;padding:10px">Chưa có kênh thêm</div>`; }
+        customCh.forEach(ch => { let div = document.createElement('div'); div.className = "manage-item"; div.innerHTML = `<div class="manage-name">${ch.name}</div><div class="manage-tools"><i class="fa-solid fa-pen edit" onclick="editCh(${ch.id})"></i><i class="fa-solid fa-trash del" onclick="delCustom(${ch.id})"></i></div>`; list.appendChild(div); });
+    }
+    function editCh(id) { let c = channels.find(x => x.id == id); if (c) { document.getElementById('add-modal').style.display = 'flex'; document.getElementById('inp-id').value = c.id; document.getElementById('inp-name').value = c.name; document.getElementById('inp-url').value = c.url; if(document.getElementById('btn-modal-del')) document.getElementById('btn-modal-del').style.display = "inline-block"; } }
+    function deleteCurrentChannel() { let id = document.getElementById('inp-id').value; if(id) delCustom(id); }
+    function delCustom(id) { if(confirm("Xóa kênh này?")) { channels = channels.filter(c => c.id != id); 
+    localStorage.setItem('custom_channels', JSON.stringify(channels.filter(c => c.isCustom))); 
+    renderManageList(); renderChannels(); if(document.getElementById('inp-id').value == id) closeModal(); } }
+
+    let activeSlots = [0, 0, 0]; let slotStartTime = [0, 0, 0]; let hlsRad = [null, null, null]; let recorders = [null, null, null]; let recChunks = [[],[],[]]; let recTimers = [null,null,null]; let recSecs = [0,0,0]; let recStartTimes = [null, null, null];
+    
+    function toggleDropdown(idx) { if(recorders[idx]) stopRec(idx); let dd = document.getElementById(`dd-${idx}`); document.querySelectorAll('.channel-dropdown').forEach((el, i) => { if(i!==idx) el.classList.remove('show'); }); if(dd.classList.contains('show')) dd.classList.remove('show'); else { dd.innerHTML = ""; channels.forEach(ch => { let div = document.createElement('div'); div.className = "dd-item"; div.innerText = ch.name; div.onclick = () => { loadRadio(idx, ch.id); dd.classList.remove('show'); renderChannels(); }; dd.appendChild(div); }); dd.classList.add('show'); } }
+
+    function loadRadio(idx, id) {
+        let ch = channels.find(c => c.id === id); if(!ch) return;
+        activeSlots[idx] = id; slotStartTime[idx] = Date.now();
+        document.getElementById(`s${idx+1}-name`).innerText = ch.name;
+        let aud = document.getElementById(`rad-${idx}`); aud.crossOrigin = "anonymous";
+        if(hlsRad[idx]) { hlsRad[idx].destroy(); hlsRad[idx] = null; }
+        aud.pause(); aud.removeAttribute('src'); aud.load();
+        if(Hls.isSupported() && ch.url.includes('.m3u8')) { let h = new Hls(); h.loadSource(ch.url); h.attachMedia(aud); hlsRad[idx] = h; h.on(Hls.Events.MANIFEST_PARSED, ()=>aud.play().catch(()=>{})); } 
+        else { aud.src = ch.url; aud.play().catch(()=>{}); }
+        updP2UI(idx, true);
+    }
+    
+    function togRadio(idx) {
+        let aud = document.getElementById(`rad-${idx}`);
+        if (activeSlots[idx] === 0) return;
+        if (aud.paused) { aud.play(); updP2UI(idx, true); } 
+        else { if(recorders[idx]) stopRec(idx); aud.pause(); updP2UI(idx, false); }
+        renderChannels();
+    }
+    function setVolume(idx, val) {
+        let aud = document.getElementById(`rad-${idx}`);
+        if(aud) aud.volume = val;
+    }
+
+    function updP2UI(idx, playing) {
+        let miniBtn = document.getElementById(`mini-p${idx+1}`); let st = document.getElementById(`s${idx+1}-st`); let nameSpan = document.getElementById(`s${idx+1}-name`);
+        if(playing) { miniBtn.classList.add('playing'); miniBtn.innerHTML = '<i class="fa-solid fa-pause"></i>'; st.innerText = "Đang phát"; st.style.color = "#34c759"; if(nameSpan) nameSpan.classList.add('slot-name-running'); }
+        else { miniBtn.classList.remove('playing'); miniBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; st.innerText = "Tạm dừng"; st.style.color = "var(--text-sub)"; if(nameSpan) nameSpan.classList.remove('slot-name-running'); }
+    }
+
+    function startRec(idx) {
+        let aud = document.getElementById(`rad-${idx}`); if(aud.paused) { alert("Bật phát kênh trước khi ghi âm!"); return; }
+        let stream; try { stream = aud.captureStream ? aud.captureStream() : aud.mozCaptureStream(); } catch(e){ alert("CORS: Kênh này chặn ghi âm trình duyệt."); return; }
+        recStartTimes[idx] = new Date(); recChunks[idx] = []; recorders[idx] = new MediaRecorder(stream);
+        recorders[idx].ondataavailable = e => recChunks[idx].push(e.data); recorders[idx].onstop = () => { saveRec(idx); }; recorders[idx].start();
+        document.getElementById(`mic-${idx}`).classList.add('hidden'); let groupBtn = document.getElementById(`rec-btns-${idx}`); groupBtn.classList.remove('hidden');
+        let pauseBtn = document.getElementById(`pause-${idx}`); let stopBtn = groupBtn.querySelector('.btn-stop');
+        if(pauseBtn) { pauseBtn.innerText = "TẠM DỪNG"; pauseBtn.className = "btn-rec-act btn-pause"; }
+        if(stopBtn) stopBtn.innerText = "DỪNG";
+        let tm = document.getElementById(`rt-${idx}`); tm.classList.add('recording'); recSecs[idx] = 0;
+        recTimers[idx] = setInterval(()=>{ recSecs[idx]++; let m = Math.floor(recSecs[idx]/60).toString().padStart(2,'0'); let s = (recSecs[idx]%60).toString().padStart(2,'0'); tm.innerText = `${m}:${s}`; },1000);
+    }
+    function pauseRec(idx) {
+        if(recorders[idx] && recorders[idx].state === 'recording') { recorders[idx].pause(); clearInterval(recTimers[idx]);
+        let btn = document.getElementById(`pause-${idx}`); btn.innerText = "TIẾP TỤC"; btn.className = "btn-rec-act btn-resume"; btn.onclick = () => resumeRec(idx);
+        document.getElementById(`rt-${idx}`).classList.replace('recording', 'paused'); }
+    }
+    function resumeRec(idx) {
+        if(recorders[idx] && recorders[idx].state === 'paused') { recorders[idx].resume();
+        recTimers[idx] = setInterval(()=>{ recSecs[idx]++; let m = Math.floor(recSecs[idx]/60).toString().padStart(2,'0'); let s = (recSecs[idx]%60).toString().padStart(2,'0'); document.getElementById(`rt-${idx}`).innerText = `${m}:${s}`; },1000);
+        let btn = document.getElementById(`pause-${idx}`); btn.innerText = "TẠM DỪNG"; btn.className = "btn-rec-act btn-pause"; btn.onclick = () => pauseRec(idx);
+        document.getElementById(`rt-${idx}`).classList.replace('paused', 'recording'); }
+    }
+    function stopRec(idx) {
+        if(recorders[idx]) { recorders[idx].stop(); recorders[idx] = null; clearInterval(recTimers[idx]);
+        document.getElementById(`mic-${idx}`).classList.remove('hidden'); document.getElementById(`rec-btns-${idx}`).classList.add('hidden'); 
+        document.getElementById(`rt-${idx}`).innerText = "00:00"; document.getElementById(`rt-${idx}`).classList.remove('recording', 'paused');
+        let pauseBtn = document.getElementById(`pause-${idx}`); pauseBtn.innerText = "TẠM DỪNG"; pauseBtn.className = "btn-rec-act btn-pause"; pauseBtn.onclick = () => pauseRec(idx); }
+    }
+    async function saveRec(idx) {
+        if (recChunks[idx].length === 0) return;
+        let chName = channels.find(c => c.id == activeSlots[idx])?.name || "Ghi âm";
+        let startTime = recStartTimes[idx] || new Date(); let endTime = new Date(); 
+        const fmt = (d) => { let h = d.getHours().toString().padStart(2, '0'); let m = d.getMinutes().toString().padStart(2, '0'); return `${h}h${m}`; };
+        const fDate = (d) => { let dd = d.getDate().toString().padStart(2, '0'); let mm = (d.getMonth() + 1).toString().padStart(2, '0'); let yy = d.getFullYear(); return `${dd}-${mm}-${yy}`; };
+        let finalName = `${chName}_${fDate(startTime)}_${fmt(startTime)}-${fmt(endTime)}`;
+        let blob = new Blob(recChunks[idx], {type:'audio/webm'});
+        let record = { id: Date.now(), name: finalName, time: new Date().toLocaleTimeString(), blob: blob };
+        let db = await openDB(); let tx = db.transaction('recordings', 'readwrite'); tx.objectStore('recordings').add(record);
+        tx.oncomplete = () => { loadSavedRecs(); recChunks[idx] = []; alert(`Đã lưu file: ${finalName}`); };
+    }
+
+    // --- PHẦN PHÁT LẠI ---
+    let currentPreviewIdx = -1; const previewAud = document.getElementById('preview-audio');
+    
+    function renderSaved() {
+        let list = document.getElementById('saved-list'); list.innerHTML = "";
+        savedRecs.forEach((r, i) => {
+            let div = document.createElement('div'); div.className = "saved-item";
+            div.innerHTML = `
+                <div class="saved-info"><b>${r.name}</b><br><small>${r.time}</small></div>
+                <div class="player-controls" style="margin: 8px 0; background: var(--bg-body); padding: 8px; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span id="cur-${i}" style="font-family: monospace; font-size: 11px; min-width:35px">00:00</span>
+                        <input type="range" id="seek-${i}" value="0" min="0" step="0.1" oninput="manualSeek(${i}, this.value)" style="flex: 1; height: 4px; cursor: pointer; accent-color: var(--primary);">
+                        <span id="dur-${i}" style="font-family: monospace; font-size: 11px; min-width:35px">00:00</span>
+                    </div>
+                </div>
+                <div class="saved-actions">
+                    <button class="btn-text" onclick="seekRec(${i}, -10)" style="background:var(--bg-input); border:1px solid var(--border); color:var(--text-main); width:auto;"><i class="fa-solid fa-backward"></i> -10s</button>
+                    <button class="btn-text play" id="btn-p-${i}" onclick="playSave('${r.url}', ${i})" style="min-width:60px">Phát</button>
+                    <button class="btn-text" onclick="seekRec(${i}, 10)" style="background:var(--bg-input); border:1px solid var(--border); color:var(--text-main); width:auto;">+10s <i class="fa-solid fa-forward"></i></button>
+                    <div style="flex:1"></div>
+                    <a href="${r.url}" download="${r.name}.mp3" class="btn-text down"><i class="fa-solid fa-download"></i></a>
+                    <button class="btn-text del" onclick="delSave(${i})"><i class="fa-solid fa-trash"></i></button>
+                </div>`;
+            list.appendChild(div);
+        });
+    }
+
+    function playSave(url, idx) {
+        if (currentPreviewIdx === idx && !previewAud.paused) { previewAud.pause(); updatePlayBtnUI(idx, false); return; }
+        if (currentPreviewIdx !== -1 && currentPreviewIdx !== idx) { updatePlayBtnUI(currentPreviewIdx, false); }
+        currentPreviewIdx = idx; if (previewAud.src !== url) previewAud.src = url; previewAud.play(); updatePlayBtnUI(idx, true);
+    }
+    
+    function manualSeek(idx, val) { if (currentPreviewIdx === idx) { previewAud.currentTime = val; } }
+    function seekRec(idx, seconds) { if (currentPreviewIdx === idx) { previewAud.currentTime += seconds; } else { playSave(savedRecs[idx].url, idx); } }
+    async function delSave(idx) { if(!confirm("Xóa file này?")) return; let rec = savedRecs[idx]; let db = await openDB(); let tx = db.transaction(STORE_NAME, 'readwrite'); tx.objectStore(STORE_NAME).delete(rec.id); tx.oncomplete = () => { if (currentPreviewIdx === idx) { previewAud.pause(); currentPreviewIdx = -1; } loadSavedRecs(); }; }
+    
+    previewAud.ontimeupdate = () => {
+        if (currentPreviewIdx === -1) return;
+        let slider = document.getElementById(`seek-${currentPreviewIdx}`);
+        let curTxt = document.getElementById(`cur-${currentPreviewIdx}`);
+        let durTxt = document.getElementById(`dur-${currentPreviewIdx}`);
+        if (slider && !isNaN(previewAud.duration)) {
+            slider.max = previewAud.duration; slider.value = previewAud.currentTime;
+            curTxt.innerText = formatTime(previewAud.currentTime); durTxt.innerText = formatTime(previewAud.duration);
+        }
+    };
+    previewAud.onended = () => { if (currentPreviewIdx !== -1) updatePlayBtnUI(currentPreviewIdx, false); currentPreviewIdx = -1; };
+    function updatePlayBtnUI(idx, isPlaying) { let btn = document.getElementById(`btn-p-${idx}`); if (btn) { btn.innerText = isPlaying ? 'Dừng' : 'Phát'; btn.classList.toggle('active', isPlaying); } }
+    function formatTime(secs) { let m = Math.floor(secs / 60).toString().padStart(2, '0'); let s = Math.floor(secs % 60).toString().padStart(2, '0'); return `${m}:${s}`; }
+
+    function loadCustomChannels() { let stored = localStorage.getItem('custom_channels'); if (stored) { let customCh = JSON.parse(stored); customCh.forEach(c => { if (!channels.find(exist => exist.id === c.id)) { channels.push(c); } }); } }
+    
+    const DB_NAME = 'RadioMasterDB'; const STORE_NAME = 'recordings'; const EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+    function openDB() { return new Promise((resolve, reject) => { let req = indexedDB.open(DB_NAME, 1); req.onupgradeneeded = (e) => { let db = e.target.result; if (!db.objectStoreNames.contains(STORE_NAME)) { db.createObjectStore(STORE_NAME, { keyPath: 'id' }); } }; req.onsuccess = (e) => resolve(e.target.result); req.onerror = (e) => reject(e); }); }
+    async function loadSavedRecs() { let db = await openDB(); let tx = db.transaction(STORE_NAME, 'readwrite'); let store = tx.objectStore(STORE_NAME); let req = store.getAll(); req.onsuccess = () => { let allRecs = req.result; let now = Date.now(); savedRecs = []; allRecs.forEach(rec => { if (now - rec.id > EXPIRY_MS) { db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).delete(rec.id); } else { if (rec.blob) { rec.url = URL.createObjectURL(rec.blob); savedRecs.push(rec); } } }); savedRecs.sort((a, b) => b.id - a.id); renderSaved(); }; }
+    function startRealTimeClock() { function update() { const now = new Date(); const timeEl = document.getElementById('clock-time'); const dateEl = document.getElementById('clock-date'); if(timeEl) timeEl.innerText = now.toLocaleTimeString('vi-VN', { hour:'2-digit', minute:'2-digit', hour12: false }); if(dateEl) dateEl.innerText = now.toLocaleDateString('vi-VN', { weekday:'short', day:'2-digit', month:'2-digit', year:'numeric' }); } update(); setInterval(update, 1000); } 
+    
+    // --- RENDER CHANNELS ---
+    function renderChannels() {
+        const list = document.getElementById('channel-list-container'); list.innerHTML = "";
+        let data = channels; if(currentSubTab === 'fav') data = channels.filter(c => c.fav);
+        if(data.length === 0) { list.innerHTML = `<div style="text-align:center;color:var(--text-sub);margin-top:20px;font-size:12px">Trống</div>`; return; }
+        data.forEach(ch => {
+            let div = document.createElement('div'); let slotIdx = activeSlots.indexOf(ch.id); let isPlaying = slotIdx !== -1;
+            div.className = `p1-item ${isPlaying ? 'active-channel' : ''}`;
+            div.onclick = (e) => { if(!e.target.closest('.btn-icon')) toggleChannelP1(ch.id); };
+            let btnLabel = isPlaying ? "TẮT" : "BẬT"; let btnClass = isPlaying ? "off" : "on";
+            
+            // Render: Nếu đang phát thì hiển thị chữ LIVE màu đỏ trên nền trắng tĩnh lặng, nếu tắt phát thì hiện logo bình thường
+            let logoContent = isPlaying ? 
+                `<div class="live-replacement-box">Live</div>` : 
+                `<img src="${ch.img}" class="channel-logo" loading="lazy">`;
+
+            div.innerHTML = `
+                <div class="logo-container">
+                    ${logoContent}
+                </div>
+                <div class="p1-info">
+                    <div class="p1-name">${ch.name}</div>
+                    ${ch.isCustom ? '<div class="p1-badge">Cá nhân</div>' : ''}
+                </div>
+                ${isPlaying ? '<div class="music-wave" style="margin-left:5px; margin-right:5px; transform:scale(0.7)"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>' : ''}
+                <div class="p1-actions">
+                    <button class="btn-power ${btnClass}">${btnLabel}</button>
+                    <button class="btn-icon ${ch.fav?'loved':''}" onclick="event.stopPropagation(); togFav(${ch.id})">
+                        <i class="${ch.fav?'fa-solid':'fa-regular'} fa-heart"></i>
+                    </button>
+                </div>`; 
+            list.appendChild(div);
+        });
+    }
+    function toggleChannelP1(id) { let slotIdx = activeSlots.indexOf(id); if (slotIdx !== -1) stopSlot(slotIdx); else assignChannelToNextSlot(id); renderChannels(); }
+    function assignChannelToNextSlot(chId) { let targetSlot = activeSlots.indexOf(0); if(targetSlot === -1) { let minTime = Infinity; for(let i=0; i<3; i++) { if(slotStartTime[i] < minTime) { minTime = slotStartTime[i]; targetSlot = i; } } stopSlot(targetSlot); } loadRadio(targetSlot, chId); }
+    function stopSlot(idx) { if(recorders[idx]) stopRec(idx); let aud = document.getElementById(`rad-${idx}`); aud.pause(); aud.src = ""; if(hlsRad[idx]) { hlsRad[idx].destroy(); hlsRad[idx] = null; } activeSlots[idx] = 0; slotStartTime[idx] = 0; document.getElementById(`s${idx+1}-name`).innerText = "Chưa chọn..."; updP2UI(idx, false); }
+
+    // --- CHỐNG F12 ---
+    document.addEventListener('contextmenu', event => event.preventDefault());
+    document.onkeydown = function(e) { if (e.keyCode == 123) return false; if (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) return false; if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; };
+
+</script>
+</body>
+</html>

@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>TV PRO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <style>
+        body { 
+            background-color: #050a12; color: #e0e0e0; 
+            height: 100dvh; margin: 0; 
+            font-family: 'Segoe UI', sans-serif; 
+            overflow: hidden; display: flex; flex-direction: column;
+        }
+
+        .main-container { display: flex; flex-direction: column; height: 100%; }
+        @media (min-width: 1024px) {
+            .main-container { display: grid; grid-template-columns: 2fr 1fr; padding: 25px; gap: 25px; }
+            .content-scroll { height: calc(100vh - 120px); overflow-y: auto; scroll-behavior: smooth; }
+        }
+        @media (max-width: 1023px) {
+            .main-container { padding: 10px 10px 0 10px; }
+            .content-scroll { flex-grow: 1; overflow-y: auto; padding-bottom: 80px; scroll-behavior: smooth; }
+        }
+
+        .tv-frame { 
+            position: relative; width: 100%; aspect-ratio: 16 / 9; 
+            background: #000; border-radius: 12px; overflow: hidden; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.08);
+            cursor: none;
+        }
+        .tv-frame.show-ui { cursor: default; }
+
+        .power-btn { 
+            color: #ef4444; font-size: 24px; cursor: pointer; 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: inline-block;
+        }
+        .power-on { 
+            color: #22c55e !important; transform: rotate(90deg);
+            filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.5));
+        }
+
+        /* Tối ưu header danh sách kênh để chứa thanh tìm kiếm */
+        .panel-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 15px; border-bottom: 1px solid rgba(59, 130, 246, 0.15);
+        }
+        .panel-title { 
+            font-size: 10px; font-weight: 800; 
+            color: #3b82f6; text-transform: uppercase; letter-spacing: 1.2px;
+        }
+
+        /* Style cho thanh tìm kiếm */
+        .search-box {
+            display: flex; align-items: center; background: rgba(255,255,255,0.05);
+            padding: 4px 8px; border-radius: 6px; transition: all 0.3s ease;
+        }
+        .search-box input {
+            width: 0; background: none; border: none; outline: none;
+            color: #fff; font-size: 12px; transition: all 0.3s ease;
+        }
+        .search-box.active input { width: 120px; margin-right: 8px; }
+        .search-box i { color: #64748b; cursor: pointer; font-size: 12px; }
+        .search-box.active i { color: #3b82f6; }
+
+        .tabs-row { display: flex; gap: 8px; margin-bottom: 15px; margin-top: 10px; overflow-x: auto; padding-bottom: 5px; }
+        .tab-item {
+            padding: 10px 20px; background: rgba(255,255,255,0.05); border-radius: 8px;
+            font-size: 13px; font-weight: bold; cursor: pointer; color: #9ca3af; white-space: nowrap;
+        }
+        .tab-item.active { background: #2563eb; color: #fff; }
+
+        .channel-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 15px; background: rgba(255,255,255,0.03);
+            margin-bottom: 5px; border-radius: 8px; cursor: pointer; font-size: 14px;
+            transition: background 0.3s;
+            touch-action: manipulation;
+        }
+        .channel-row.playing { border-left: 4px solid #3b82f6; background: rgba(59, 130, 246, 0.15); color: #fff; }
+        
+        .sortable-ghost { opacity: 0.4; background: #3b82f6 !important; }
+        .sortable-drag { cursor: grabbing; opacity: 1; background: #1e293b; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .drag-handle-icon { cursor: grab; padding-right: 10px; color: #555; display: none; }
+        .is-user-tab .drag-handle-icon { display: inline-block; }
+
+        .playing-indicator { color: #3b82f6; font-weight: bold; margin-right: 8px; display: none; }
+        .playing .playing-indicator { display: inline-block; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.3; } }
+
+        .del-text { color: rgba(239, 68, 68, 0.4); font-weight: bold; font-size: 18px; padding: 0 10px; }
+        .del-text:hover { color: #ef4444; transform: scale(1.2); }
+
+        .video-controls {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            padding: 20px 30px; display: flex; justify-content: space-between; align-items: center;
+            opacity: 0; transform: translateY(20px); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+            z-index: 20; pointer-events: none;
+        }
+
+        .heart-btn {
+            position: absolute; top: 20px; right: 20px; z-index: 30;
+            font-size: 28px; color: rgba(255,255,255,0.4);
+            cursor: pointer; 
+            opacity: 0; transform: translateY(-20px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+        }
+
+        .tv-frame.show-ui .video-controls { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .tv-frame.show-ui .heart-btn { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+        .heart-btn.active { 
+            color: #ef4444; 
+            filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.6));
+            animation: heartBeat 0.4s ease-in-out;
+        }
+        
+        .heart-btn:hover { transform: scale(1.2) !important; color: #fff; }
+
+        @keyframes heartBeat { 0% { transform: scale(1); } 50% { transform: scale(1.4); } 100% { transform: scale(1); } }
+
+        .icon-btn { background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; }
+        
+        .vol-container { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; }
+        .vol-slider-wrapper { width: 0; overflow: hidden; transition: 0.3s; }
+        .vol-container:hover .vol-slider-wrapper { width: 80px; }
+        input[type="range"].vol-bar { accent-color: #3b82f6; width: 100%; cursor: pointer; }
+
+        .pc-input { width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 12px; border-radius: 8px; margin-bottom: 10px; outline: none; }
+        .btn-full { width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <div class="flex flex-col">
+            <div class="tv-frame" id="tvContainer">
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div id="centerLogo" class="text-[3rem] font-black text-white/5 tracking-[10px]">TV PRO</div>
+                </div>
+                
+                <div id="favHeart" class="heart-btn" onclick="toggleFavorite()">
+                    <i class="fas fa-heart"></i>
+                </div>
+
+                <video id="tvVideo" class="w-full h-full object-contain relative z-10" playsinline></video>
+                
+                <div class="video-controls" id="controlsOverlay">
+                    <div class="flex items-center gap-10">
+                        <button onclick="togglePlayPause()" class="icon-btn"><i id="playIcon" class="fas fa-play"></i></button>
+                        <div class="flex gap-8">
+                            <button onclick="prevChannel()" class="icon-btn"><i class="fas fa-step-backward"></i></button>
+                            <button onclick="nextChannel()" class="icon-btn"><i class="fas fa-step-forward"></i></button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="vol-container">
+                            <i id="volIcon" class="fas fa-volume-up text-xs transition-colors duration-300"></i>
+                            <div class="vol-slider-wrapper">
+                                <input type="range" class="vol-bar" min="0" max="1" step="0.1" value="1" oninput="setVolume(this.value)">
+                            </div>
+                        </div>
+                        <button onclick="togglePiP()" class="icon-btn" title="Hình trong hình"><i class="fas fa-clone"></i></button>
+                        <button onclick="toggleFS()" class="icon-btn" title="Toàn màn hình"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center py-3 px-1">
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <span id="liveBadge" class="hidden bg-red-600 px-2 py-0.5 rounded text-[9px] font-bold">LIVE</span>
+                    <span id="curName" class="font-bold truncate text-lg">BẠN ĐANG MỞ TV</span>
+                </div>
+                <div onclick="togglePower()" id="powerBtn" class="power-btn"><i class="fas fa-power-off"></i></div>
+            </div>
+
+            <div class="tabs-row">
+                <div class="tab-item active" id="t-system" onclick="switchTab('system')">KÊNH CHUNG</div>
+                <div class="tab-item" id="t-thiết yếu" onclick="switchTab('thiết yếu')">THIẾT YẾU</div>
+                <div class="tab-item" id="t-vtv" onclick="switchTab('vtv')">VTV</div>
+                <div class="tab-item" id="t-vtvcab" onclick="switchTab('vtvcab')">VTV CAB</div>
+                <div class="tab-item" id="t-sctv" onclick="switchTab('sctv')">SCTV</div>
+                <div class="tab-item" id="t-htv" onclick="switchTab('htv')">HTV</div>
+                <div class="tab-item" id="t-kids" onclick="switchTab('kids')">THIẾU NHI</div>
+                <div class="tab-item" id="t-movies" onclick="switchTab('movies')">PHIM</div>
+                <div class="tab-item" id="t-int" onclick="switchTab('int')">QUỐC TẾ</div>
+                <div class="tab-item" id="t-radio" onclick="switchTab('radio')">RADIO</div>
+                <div class="tab-item" id="t-favorite" onclick="switchTab('favorite')">YÊU THÍCH</div>
+                <div class="tab-item" id="t-user" onclick="switchTab('user')">KÊNH CÁ NHÂN</div>
+                <div class="tab-item" id="t-manage" onclick="switchTab('manage')">QUẢN LÝ</div>
+            </div>
+        </div>
+
+        <div class="flex flex-col bg-white/5 rounded-xl border border-white/5 overflow-hidden">
+            <div class="panel-header">
+                <div class="panel-title" id="panelTitle">KÊNH CHUNG</div>
+                <div class="search-box" id="searchBox">
+                    <input type="text" id="searchInput" placeholder="Tìm tên kênh..." oninput="handleSearch(this.value)">
+                    <i class="fas fa-search" onclick="toggleSearch()"></i>
+                </div>
+            </div>
+            <div class="content-scroll" id="sideContent"></div>
+        </div>
+    </div>
+
+    <input type="file" id="m3uFile" class="hidden" accept=".m3u,.m3u8" onchange="handleImport(event)">
+
+    <script>
+        const fixedChannels = [
+            { cat: "VTV", name: "VTV1", url: "https://live-a.fptplay53.net/live/media/vtv1/live247-hls-avc/vtv1-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { cat: "VTV", name: "VTV2", url: "https://live-a.fptplay53.net/live/media/v2abr/live247-hls-avc/v2abr-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { cat: "VTV", name: "VTV3", url: "https://live-a.fptplay53.net/live/media/v3abr/live247-hls-avc/v3abr-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { cat: "VTV", name: "VTV4", url: "https://live-a.fptplay53.net/live/media/vtv4/live247-hls-avc/vtv4-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { cat: "VTV", name: "VTV5", url: "https://live-a.fptplay53.net/live/media/vtv5/live247-hls-avc/vtv5-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { cat: "VTV", name: "VTV5 Tây Nguyên", url: "https://vips-livecdn.fptplay.net/live/media/vtv5tn/live-hls-avc/vtv5tn-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { cat: "VTV", name: "VTV5 Tây Nam Bộ", url: "https://vips-livecdn.fptplay.net/live/media/vtv5tnb/live-hls-avc/vtv5tnb-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { cat: "VTV", name: "VTV6", url: "https://live-a.fptplay53.net/live/media/v6abr/live247-hls-avc/v6abr-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { cat: "VTV", name: "VTV7", url: "https://live-a.fptplay53.net/live/media/v7abr/live247-hls-avc/v7abr-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { cat: "VTV", name: "VTV8", url: "https://live-a.fptplay53.net/live/media/vtv8/live-hls-avc/vtv8-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { cat: "VTV", name: "VTV9", url: "https://live-a.fptplay53.net/live/media/v9abr/live247-hls-avc/v9abr-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { cat: "VTV", name: "VTV10", url: "https://live-a.fptplay53.net/live/media/v10abr/live247-hls-avc/v10abr-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { cat: "VTV", name: "Vietnam Today", url: "https://vips-livecdn.fptplay.net/live/media/vietnamtoday/live-hls-avc/vietnamtoday-avc1_1499968=10002-mp4a_131600=20000.m3u8" },
+        ];
+
+        let userPlaylist = JSON.parse(localStorage.getItem('user_tv_playlist')) || [];
+        let favoritePlaylist = JSON.parse(localStorage.getItem('user_tv_favorites')) || [];
+
+        let activeTab = 'system', isPowerOn = false, currentIdx = -1, currentSource = 'system', hlsObj = null, uiTimeout;
+        let sortableInstance = null;
+        let searchQuery = ''; // Biến lưu trữ từ khóa tìm kiếm
+
+        const video = document.getElementById('tvVideo');
+        const tvContainer = document.getElementById('tvContainer');
+        const powerBtn = document.getElementById('powerBtn');
+        const favHeart = document.getElementById('favHeart');
+
+        window.onload = () => renderUI();
+
+        video.addEventListener('play', () => document.getElementById('playIcon').className = "fas fa-pause");
+        video.addEventListener('pause', () => document.getElementById('playIcon').className = "fas fa-play");
+
+        const showUI = () => {
+            tvContainer.classList.add('show-ui');
+            clearTimeout(uiTimeout);
+            if (isPowerOn) uiTimeout = setTimeout(() => tvContainer.classList.remove('show-ui'), 3000);
+        };
+        const hideUINow = () => {
+            if (isPowerOn) { clearTimeout(uiTimeout); tvContainer.classList.remove('show-ui'); }
+        };
+
+        tvContainer.addEventListener('mousemove', showUI);
+        tvContainer.addEventListener('touchstart', showUI);
+        tvContainer.addEventListener('mouseleave', hideUINow);
+
+        function switchTab(tab) { 
+            activeTab = tab; 
+            // Reset tìm kiếm khi chuyển tab
+            searchQuery = '';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchBox').classList.remove('active');
+            renderUI(); 
+        }
+
+        // Logic tìm kiếm
+        function toggleSearch() {
+            const box = document.getElementById('searchBox');
+            const input = document.getElementById('searchInput');
+            box.classList.toggle('active');
+            if (box.classList.contains('active')) {
+                input.focus();
+            } else {
+                searchQuery = '';
+                input.value = '';
+                renderUI();
+            }
+        }
+
+        function handleSearch(val) {
+            searchQuery = val.toLowerCase().trim();
+            renderUI();
+        }
+
+        function getFilteredList(type) {
+            const normalize = (str) => {
+                if(!str) return "";
+                return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/\s+/g, "");
+            };
+
+            if (type === 'vtv') {
+                return userPlaylist.filter(ch => {
+                    const nameLower = ch.name.toLowerCase();
+                    const groupNorm = normalize(ch.group);
+                    const isVTV = nameLower.includes('vtv') || groupNorm.includes('vtv');
+                    const isNotCab = !nameLower.includes('cab') && !groupNorm.includes('cab');
+                    const isNotHanoi = !groupNorm.includes('hanoi') && !groupNorm.includes('hncab');
+                    return isVTV && isNotCab && isNotHanoi; 
+               });
+            }
+
+            if (type === 'vtvcab') {
+                return userPlaylist.filter(ch => {
+                    const groupNorm = normalize(ch.group);
+                    const hasCab = groupNorm.includes('cab');
+                    const isNotHanoi = !groupNorm.includes('hanoi') && !groupNorm.includes('hncab');
+                    return hasCab && isNotHanoi;
+                });
+            }
+            if (type === 'htv') {
+                return userPlaylist.filter(ch => {
+                    const nameLower = ch.name.toLowerCase();
+                    const groupNorm = normalize(ch.group);
+                    const isHTV = nameLower.includes('htv') || groupNorm.includes('htv');
+                    const isNotVTV = !nameLower.includes('vtv') && !groupNorm.includes('vtv');
+                    const isNotSCTV = !nameLower.includes('sctv') && !groupNorm.includes('sctv');
+                    return isHTV && isNotVTV && isNotSCTV;
+                });
+            }
+            if (type === 'sctv') {
+                return userPlaylist.filter(ch => {
+                    const nameLower = ch.name.toLowerCase();
+                    const groupNorm = normalize(ch.group);
+                    const isSCTV = nameLower.includes('sctv') || groupNorm.includes('sctv');
+                    const excludes = ['vtv', 'hbo', 'cinemax', 'discovery', 'fox', 'axn', 'cnn', 'bbc', 'nhk', 'cartoon', 'disney'];
+                    const isNotExcluded = !excludes.some(k => nameLower.includes(k));
+                    return isSCTV && isNotExcluded;
+               });
+            }
+            if (type.toLowerCase() === 'thiết yếu') {
+                const keys = ['antv', 'qptvn', 'vtv1', 'vtv5', 'vietnam today'];
+                return userPlaylist.filter(ch => {
+                    if (!ch) return false;
+                    if (ch.group && ch.group.toLowerCase().includes('thiết yếu')) return true;
+                    if (ch.name) {
+                        const nameLower = ch.name.toLowerCase();
+                        
+                        // Loại trừ ngay nếu tên chứa chữ Tây Nguyên hoặc Tây Nam Bộ (có dấu và không dấu)
+                        if (nameLower.includes('tây nguyên') || nameLower.includes('tây nam bộ') || 
+                            nameLower.includes('tay nguyen') || nameLower.includes('tay nam bo') ||
+                            nameLower.includes('vtv10')) {
+                            return false;
+                        }
+                        
+                        return keys.some(k => nameLower.includes(k));
+                    }
+                    return false;
+                });
+            }
+            if (type === 'kids') {
+                const keys = ['bibi', 'cartoon', 'disney', 'thiếu nhi', 'kids', 'animax', 'hoạt hình', 'baby', 'pop', 'dreamworks', 'cbeebies', 'nick', 'ebs'];
+                return userPlaylist.filter(ch => {
+                    if (ch.group && ch.group.toLowerCase().includes('thiếu nhi')) return true;
+                    return keys.some(k => ch.name.toLowerCase().includes(k));
+                });
+            }
+           if (type === 'movies') {
+                return userPlaylist.filter(ch => {
+                    const nameLower = ch.name.toLowerCase();
+                    const groupNorm = normalize(ch.group);
+                    if (groupNorm.includes('phim')) return true;
+                    const includeKeys = ['hbo', 'cinemax', 'movie', 'cinema', 'today', 'amc', 'axn', 'fox movies', 'phim', 'flim'];
+                    const sctvMovieNumbers = ['sctv2 ','sctv4', 'sctv6', 'sctv9', 'sctv14', 'sctv16', 'sctv phim'];
+                    const isMovieName = includeKeys.some(k => nameLower.includes(k));
+                    const isSctvMovie = sctvMovieNumbers.some(k => nameLower.includes(k));
+                    const excludes = ['vietnamtoday', 'sctv20', 'sctv22', 'starworld'];
+                    const isExcluded = excludes.some(k => nameLower.replace(/\s+/g, '').includes(k));
+                    return (isMovieName || isSctvMovie) && !isExcluded;
+                });
+            }
+           if (type === 'int') {
+                const keys = ['cnn', 'bbc', 'hbo', 'discovery', 'fox', 'news', 'nhk', 'dw', 'kbs', 'arirang', 'tv5', 'cinemax', 'star', 'axn', 'bloomberg', 'cctv', 'korea', 'japan', 'usa', 'america', 'world'];
+                return userPlaylist.filter(ch => {
+                    const nameLower = ch.name.toLowerCase();
+                    const groupNorm = normalize(ch.group);
+                    const vnExcludes = ['vtv', 'sctv', 'htv', 'vinh long', 'thvl', 'vtc', 'hanoi', 'vov', 'cab', 'sport', 'thể thao', 'truyền hình', 'vietnam', 'đài'];
+                    if (vnExcludes.some(p => nameLower.includes(p) || groupNorm.includes(p))) return false;
+                    const kidsExcludes = ['ebs', 'bibi', 'cartoon', 'disney', 'kids', 'thiếu nhi', 'animax', 'hoạt hình', 'nick'];
+                    if (kidsExcludes.some(p => nameLower.includes(p) || groupNorm.includes(p))) return false;
+                    if (groupNorm.includes('quocte') || groupNorm.includes('international')) return true;
+                    return keys.some(k => nameLower.includes(k));
+                });
+            }
+           if (type === 'radio') {
+                return userPlaylist.filter(ch => {
+                    if (!ch) return false;
+                    
+                    const nameLower = ch.name ? ch.name.toLowerCase() : "";
+                    const groupLower = ch.group ? ch.group.toLowerCase() : "";
+
+                    // 1. Nếu group-title chứa chữ "radio", chấp nhận ngay lập tức
+                    if (groupLower.includes('radio')) return true;
+
+                    // 2. Nếu lọc theo tên, dùng Regex để đảm bảo các từ VOV, VOH, FM, AM đứng độc lập 
+                    // (Tránh trùng với các từ như VietnAM, FAMIly, AMax...)
+                    const radioRegex = /\b(vov|voh|fm|am)\b/i;
+                    return radioRegex.test(nameLower);
+                });
+            }
+            return [];
+        }
+
+        function getCurrentList(source) {
+            let list = [];
+            if (source === 'system') list = fixedChannels;
+            else if (source === 'user') list = userPlaylist;
+            else if (source === 'favorite') list = favoritePlaylist;
+            else if (source === 'vtv') list = getFilteredList('vtv');
+            else if (source === 'vtvcab') list = getFilteredList('vtvcab');
+            else if (source === 'htv') list = getFilteredList('htv');
+            else if (source === 'sctv') list = getFilteredList('sctv');
+            else if (source === 'thiết yếu') list = getFilteredList('thiết yếu');
+            else if (source === 'kids') list = getFilteredList('kids');
+            else if (source === 'movies') list = getFilteredList('movies');
+            else if (source === 'int') list = getFilteredList('int');
+            else if (source === 'radio') list = getFilteredList('radio');
+            // Áp dụng tìm kiếm nếu có từ khóa
+            if (searchQuery) {
+                return list.filter(ch => ch.name.toLowerCase().includes(searchQuery));
+            }
+            return list;
+        }
+
+        function renderUI() {
+            if (sortableInstance) { sortableInstance.destroy(); sortableInstance = null; }
+
+            document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('t-' + activeTab).classList.add('active');
+            const content = document.getElementById('sideContent');
+            const title = document.getElementById('panelTitle');
+            const searchBox = document.getElementById('searchBox');
+            
+            content.innerHTML = '';
+            content.classList.remove('is-user-tab');
+
+            // Ẩn tìm kiếm khi ở tab quản lý
+            if (activeTab === 'manage') searchBox.style.display = 'none';
+            else searchBox.style.display = 'flex';
+
+            if (activeTab === 'manage') {
+                title.innerText = "CẤU HÌNH QUẢN LÝ";
+                content.innerHTML = `<div class="p-4">
+                    <input type="text" id="inpName" placeholder="Tên kênh (VD: Bibi, CNN...)" class="pc-input">
+                    <input type="text" id="inpLink" placeholder="Dán link .m3u8..." class="pc-input">
+                    <button onclick="addChannel()" class="btn-full bg-blue-600 text-white mb-3">LƯU & PHÁT NGAY</button>
+                    <button onclick="document.getElementById('m3uFile').click()" class="btn-full bg-gray-700 text-white">TẢI TỆP M3U</button>
+                    <button onclick="clearAll()" class="btn-full text-red-500 bg-red-900/10 mt-3">XÓA HẾT KÊNH CÁ NHÂN</button>
+                    <p class="text-xs text-gray-500 mt-4 text-center">Gợi ý: Code tự động lọc sạch Hà Nội Cab và phân loại kênh khi nhập file.</p>
+                </div>`;
+            } else {
+                let titleText = "";
+                if (activeTab === 'system') titleText = "KÊNH CHUNG";
+                else if (activeTab === 'user') titleText = "KHO KÊNH CÁ NHÂN";
+                else if (activeTab === 'favorite') titleText = "KÊNH YÊU THÍCH";
+                else if (activeTab === 'vtv') titleText = "KÊNH VTV";
+                else if (activeTab === 'vtvcab') titleText = "KÊNH VTV CAB";
+                else if (activeTab === 'htv') titleText = "KÊNH HTV";
+                else if (activeTab === 'sctv') titleText = "KÊNH SCTV";
+                else if (activeTab === 'kids') titleText = "KÊNH THIẾU NHI";
+                else if (activeTab === 'movies') titleText = "KÊNH PHIM TRUYỆN";
+                else if (activeTab === 'int') titleText = "KÊNH QUỐC TẾ";
+                else if (activeTab === 'radio') titleText = "ĐÀI PHÁT THANH RADIO";
+                title.innerText = titleText;
+
+                const data = getCurrentList(activeTab);
+
+                if (data.length === 0) {
+                    content.innerHTML = `<div class="p-5 text-center text-gray-500 text-sm">Danh sách trống.<br>${searchQuery ? 'Không tìm thấy kênh nào khớp với từ khóa.' : 'Không tìm thấy kênh phù hợp trong file M3U của bạn.'}</div>`;
+                    return;
+                }
+
+                data.forEach((ch, i) => {
+                    const playingList = getCurrentList(currentSource);
+                    const isPlaying = isPowerOn && playingList[currentIdx] && ch.url === playingList[currentIdx].url;
+
+                    const div = document.createElement('div');
+                    div.setAttribute('data-index', i);
+                    div.className = `channel-row ${isPlaying ? 'playing' : ''}`;
+                    
+                    div.onclick = (e) => {
+                        if(e.target.classList.contains('del-text')) return;
+                        playChannel(ch.url, ch.name, i, activeTab);
+                    };
+
+                    div.innerHTML = `<div class="flex items-center truncate pointer-events-none">
+                                        <i class="fas fa-bars drag-handle-icon"></i>
+                                        <span class="playing-indicator">> </span>
+                                        <div class="flex flex-col">
+                                            <span>${ch.name}</span>
+                                            ${ch.group ? `<span class="text-[9px] text-gray-500 uppercase">${ch.group}</span>` : ''}
+                                        </div>
+                                     </div>
+                                     ${activeTab === 'user' ? `<span class="del-text cursor-pointer pointer-events-auto" onclick="deleteSingle(${i}, event)">&times;</span>` : ''}`;
+                    content.appendChild(div);
+                    
+                    if(isPlaying) setTimeout(() => div.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+                });
+
+                if (activeTab === 'user' && !searchQuery) {
+                    content.classList.add('is-user-tab');
+                    sortableInstance = new Sortable(content, {
+                        animation: 150, delay: 200, delayOnTouchOnly: true,
+                        ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
+                        onEnd: function (evt) {
+                            const item = userPlaylist.splice(evt.oldIndex, 1)[0];
+                            userPlaylist.splice(evt.newIndex, 0, item);
+                            localStorage.setItem('user_tv_playlist', JSON.stringify(userPlaylist));
+                            if (currentSource === 'user' && currentIdx === evt.oldIndex) currentIdx = evt.newIndex;
+                            else renderUI();
+                        },
+                    });
+                }
+            }
+        }
+
+        function playChannel(url, name, idx, src) {
+            currentIdx = idx; currentSource = src; isPowerOn = true;
+            powerBtn.classList.add('power-on');
+            document.getElementById('centerLogo').style.opacity = '0';
+            document.getElementById('curName').innerText = name;
+            document.getElementById('liveBadge').classList.remove('hidden');
+            document.getElementById('playIcon').className = "fas fa-pause";
+            
+            checkFavoriteState(url);
+            localStorage.setItem('last_tv_session', JSON.stringify({url, name, idx, src}));
+            
+            if (hlsObj) hlsObj.destroy();
+            if (Hls.isSupported()) {
+                hlsObj = new Hls(); hlsObj.loadSource(url); hlsObj.attachMedia(video);
+                hlsObj.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
+            } else { video.src = url; video.play().catch(()=>{}); }
+            
+            if (activeTab !== src && activeTab !== 'manage' && activeTab !== 'favorite') {
+                activeTab = src;
+                renderUI();
+            } else {
+                renderUI();
+            }
+            showUI();
+        }
+
+        function checkFavoriteState(url) {
+            const exists = favoritePlaylist.some(c => c.url === url);
+            if (exists) favHeart.classList.add('active');
+            else favHeart.classList.remove('active');
+        }
+
+        function toggleFavorite() {
+            if (!isPowerOn) return;
+            const list = getCurrentList(currentSource);
+            const currentCh = list[currentIdx];
+            if (!currentCh) return;
+
+            const existingIdx = favoritePlaylist.findIndex(c => c.url === currentCh.url);
+            if (existingIdx !== -1) {
+                favoritePlaylist.splice(existingIdx, 1);
+                favHeart.classList.remove('active');
+            } else {
+                favoritePlaylist.push(currentCh);
+                favHeart.classList.add('active');
+            }
+            localStorage.setItem('user_tv_favorites', JSON.stringify(favoritePlaylist));
+            if (activeTab === 'favorite') renderUI();
+        }
+
+        async function togglePiP() {
+            try {
+                if (video !== document.pictureInPictureElement) await video.requestPictureInPicture();
+                else await document.exitPictureInPicture();
+            } catch (error) { alert("Lỗi PiP: " + error); }
+        }
+
+        function handleImport(event) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const lines = e.target.result.split('\n');
+                let tempName = "";
+                let tempGroup = ""; 
+                lines.forEach(line => {
+                    line = line.trim();
+                    if (line.startsWith("#EXTINF:")) {
+                        const groupMatch = line.match(/group-title="([^"]*)"/i);
+                        tempGroup = groupMatch ? groupMatch[1] : "";
+                        const commaIdx = line.lastIndexOf(',');
+                        if (commaIdx !== -1) tempName = line.substring(commaIdx + 1).trim();
+                    } else if (line && !line.startsWith("#")) {
+                        userPlaylist.push({ name: tempName || "Kênh không tên", url: line, group: tempGroup });
+                        tempName = ""; tempGroup = "";
+                    }
+                });
+                localStorage.setItem('user_tv_playlist', JSON.stringify(userPlaylist));
+                switchTab('user');
+            };
+            reader.readAsText(event.target.files[0]);
+        }
+
+        function togglePower() {
+            if (isPowerOn) {
+                video.pause(); video.src = ""; if(hlsObj) hlsObj.destroy();
+                isPowerOn = false; powerBtn.classList.remove('power-on');
+                document.getElementById('centerLogo').style.opacity = '1';
+                document.getElementById('curName').innerText = "Đang tắt";
+                document.getElementById('liveBadge').classList.add('hidden');
+                favHeart.classList.remove('active'); 
+                renderUI();
+            } else {
+                const last = JSON.parse(localStorage.getItem('last_tv_session'));
+                if (last) playChannel(last.url, last.name, last.idx, last.src);
+                else playChannel(fixedChannels[0].url, fixedChannels[0].name, 0, 'system');
+            }
+        }
+
+        function nextChannel() {
+            const list = getCurrentList(currentSource);
+            if (list.length) {
+                let nIdx = (currentIdx + 1) % list.length;
+                playChannel(list[nIdx].url, list[nIdx].name, nIdx, currentSource);
+            }
+        }
+
+        function prevChannel() {
+            const list = getCurrentList(currentSource);
+            if (list.length) {
+                let pIdx = (currentIdx - 1 + list.length) % list.length;
+                playChannel(list[pIdx].url, list[pIdx].name, pIdx, currentSource);
+            }
+        }
+
+        function addChannel() {
+            const name = document.getElementById('inpName').value || "Kênh mới " + (userPlaylist.length + 1);
+            const url = document.getElementById('inpLink').value;
+            if (!url) return alert("Dán link!");
+            userPlaylist.push({name, url, group: ""});
+            localStorage.setItem('user_tv_playlist', JSON.stringify(userPlaylist));
+            playChannel(url, name, userPlaylist.length - 1, 'user');
+        }
+
+        function deleteSingle(i, e) {
+            e.stopPropagation();
+            if(confirm("Xóa kênh này khỏi kho cá nhân?")) {
+                userPlaylist.splice(i, 1);
+                localStorage.setItem('user_tv_playlist', JSON.stringify(userPlaylist));
+                renderUI();
+            }
+        }
+
+        function clearAll() { if(confirm("Xóa hết?")) { userPlaylist = []; localStorage.removeItem('user_tv_playlist'); renderUI(); } }
+        function togglePlayPause() { if (!isPowerOn) return; if (video.paused) video.play(); else video.pause(); }
+
+        function setVolume(v) { 
+            video.volume = v; 
+            const volIcon = document.getElementById('volIcon');
+            volIcon.className = parseFloat(v) === 0 ? "fas fa-volume-mute text-xs text-red-500" : "fas fa-volume-up text-xs text-white";
+        }
+
+        function toggleFS() { document.fullscreenElement ? document.exitFullscreen() : tvContainer.requestFullscreen(); }
+        
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.onkeydown = function(e) {
+            if (e.keyCode == 123) return false;
+            if (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) return false;
+            if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+        };
+    </script>
+</body>
+</html>

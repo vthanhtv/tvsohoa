@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOV+ | NGHE VOV PLUS</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #0d192b;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: #16253b;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 450px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+        }
+
+        /* Header Logo */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .logo-box {
+            background-color: #ff3333;
+            color: white;
+            font-weight: 900;
+            font-size: 28px;
+            padding: 8px 20px;
+            border-radius: 8px;
+            display: inline-block;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(255, 51, 51, 0.4);
+        }
+        .logo-sub {
+            color: #8fa0b5;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        /* Hệ thống kênh */
+        .player-card {
+            background-color: #0b1523;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #1f314a;
+        }
+        .card-title {
+            color: #00ffcc;
+            text-transform: uppercase;
+            font-size: 14px;
+            font-weight: 700;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        .status-playing {
+            text-align: center;
+            font-size: 15px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .status-playing ::before {
+            content: "●";
+            color: #26af61;
+            margin-right: 6px;
+            animation: blink 1.5s infinite;
+        }
+
+        /* Select Box */
+        .select-channel {
+            width: 100%;
+            background-color: #16253b;
+            color: white;
+            border: 1px solid #2d415c;
+            padding: 12px 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            margin-bottom: 20px;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='white'><path d='M0 3l5 5 5-5z'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+        }
+
+        /* Trình điều khiển Audio mặc định */
+        audio {
+            width: 100%;
+            margin-bottom: 20px;
+            filter: invert(0.9) hue-rotate(180deg);
+        }
+
+        /* Nút Ghi Âm */
+        .btn-record {
+            width: 100%;
+            background-color: #ff3333;
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 51, 51, 0.3);
+        }
+        .btn-record:hover {
+            background-color: #e62222;
+        }
+        .btn-record.recording {
+            background-color: #26af61;
+            box-shadow: 0 4px 15px rgba(38, 175, 97, 0.3);
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Danh sách file ghi âm */
+        .record-list-card {
+            background-color: #0b1523;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid #1f314a;
+        }
+        .list-title {
+            color: #8fa0b5;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-top: 0;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .list-title i {
+            color: #ffaa00;
+        }
+        .empty-text {
+            color: #52667d;
+            text-align: center;
+            font-size: 14px;
+            margin: 10px 0;
+            font-style: italic;
+        }
+
+        /* Item file đã ghi âm */
+        .record-item {
+            background-color: #16253b;
+            padding: 12px;
+            border-radius: 10px;
+            margin-top: 10px;
+            border: 1px solid #23354f;
+        }
+        .record-item-info {
+            font-size: 13px;
+            color: #8fa0b5;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .record-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .btn-download {
+            background-color: #23354f;
+            color: #00ffcc;
+            border: 1px solid #2d415c;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+        }
+        .btn-download:hover {
+            background-color: #2d415c;
+        }
+
+        /* Nút Xóa bản ghi mới thêm */
+        .btn-delete {
+            background-color: #23354f;
+            color: #ff5555;
+            border: 1px solid #4a1f1f;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+            margin-left: auto;
+            transition: background 0.2s;
+        }
+        .btn-delete:hover {
+            background-color: #4a1f1f;
+            color: #ffffff;
+        }
+
+        @keyframes blink {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.98); }
+            100% { transform: scale(1); }
+        }
+
+        /* SÓNG ÂM THANH (AUDIO VISUALIZER) */
+        .visualizer-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 4px;
+            height: 30px;
+            margin: 5px auto 20px auto;
+        }
+        .bar {
+            width: 4px;
+            height: 3px;
+            background-color: #00ffcc;
+            border-radius: 2px;
+            transition: height 0.1s ease;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="logo-container">
+        <div class="logo-box">VOV+</div>
+        <div class="logo-sub">NGHE VOV PLUS</div>
+    </div>
+
+    <div class="player-card">
+        <h3 class="card-title">HỆ THỐNG KÊNH PHÁT THANH</h3>
+        <div class="status-playing">LIVE: <span id="current-channel-text">VOV1</span></div>
+        
+        <select class="select-channel" id="channel-select">
+            <option value="https://audio-lss.vov.vn/live/vov1.m3u8">VOV1</option>
+            <option value="https://audio-lss.vov.vn/live/vov2.m3u8">VOV2</option>
+            <option value="https://audio-lss.vov.vn/live/vov3.m3u8">VOV3</option>
+            <option value="https://audio-lss.vov.vn/live/vov4.m3u8">VOV4</option>
+            <option value="https://audio-lss.vov.vn/live/vov5.m3u8">VOV5</option>
+            <option value="https://audio-lss.vov.vn/live/vov24_7.m3u8">VOV English 24/7</option>
+            <option value="https://audio-lss.vov.vn/live/giao_thong_ha_noi.m3u8">Giao Thông Hà Nội</option>
+            <option value="https://media-audio.vov.vn/vovGTHN.sdp_aac/playlist.m3u8">VOV Giao Thông Hà Nội</option>
+            <option value="https://media-audio.vov.vn/vovGTHCM.sdp_aac/playlist.m3u8">VOV Giao Thông Hồ Chí Minh</option>
+		    <option value="https://play.vovgiaothong.vn/live/gthn/playlist.m3u8">VOVGT Hà Nội</option>
+            <option value="https://play.vovgiaothong.vn/live/gthcm/playlist.m3u8">VOVGT Hồ Chí Minh</option>
+            <option value="https://play.vovgiaothong.vn/live/mekong/playlist.m3u8">VOVGT Mekong FM90</option>
+            <option value="https://play.vovgiaothong.vn/live/duyenhai/playlist.m3u8">VOVGT Duyên Hải</option>
+            <option value="https://play.vovgiaothong.vn/live/duyenhai2/playlist.m3u8">VOVGT Duyên Hải 2</option>
+            <option value="http://14.162.146.90:8000/HANOI90">HANOI FM90</option>
+            <option value="http://222.252.21.96:8000/HANOI96">HANOI FM96</option>
+            <option value="https://strm.voh.com.vn/radio/StreamCH1/playlist.m3u8">VOH FM95.6</option>
+            <option value="https://strm.voh.com.vn/radio/StreamCH2/playlist.m3u8">VOH AM610</option>
+            <option value="https://strm.voh.com.vn/radio/StreamCH3/playlist.m3u8">VOH FM99.9</option>
+            <option value="https://strm.voh.com.vn/radio/StreamCH4/playlist.m3u8">VOH FM87.7</option>
+            <option value="https://strm.voh.com.vn/radio/StreamCH5/playlist.m3u8">VOH - Mekong FM92-92.5</option>
+        </select>
+
+        <audio id="live-audio" controls autoplay crossorigin="anonymous"></audio>
+
+        <div class="visualizer-container" id="visualizer">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+
+        <button class="btn-record" id="record-btn">
+            <i class="fa-solid fa-circle" id="record-icon"></i> 
+            <span id="record-btn-text">GHI ÂM CHƯƠNG TRÌNH</span>
+        </button>
+    </div>
+
+    <div class="record-list-card">
+        <h4 class="list-title"><i class="fa-solid fa-folder-open"></i> TỆP GHI ÂM VĨNH VIỄN TRÊN MÁY</h4>
+        <div id="empty-message" class="empty-text">Chưa có dữ liệu âm thanh nào được lưu.</div>
+        <div id="records-container"></div>
+    </div>
+</div>
+
+<script>
+    const audioEl = document.getElementById('live-audio');
+    const channelSelect = document.getElementById('channel-select');
+    const currentChannelText = document.getElementById('current-channel-text');
+    
+    const recordBtn = document.getElementById('record-btn');
+    const recordBtnText = document.getElementById('record-btn-text');
+    const recordIcon = document.getElementById('record-icon');
+    
+    const recordsContainer = document.getElementById('records-container');
+    const emptyMessage = document.getElementById('empty-message');
+
+    let visualInterval = null;
+    const barElements = document.querySelectorAll('.visualizer-container .bar');
+
+    let hls = null;
+    let mediaRecorder = null;
+    let isRecording = false;
+    let streamDest = null;
+    let audioCtx = null;
+    let sourceNode = null;
+    let currentRecordingChannelName = "";
+    
+    // Đổi tên ObjectStore hoặc Database để đồng bộ cấu trúc lưu chunk mới
+    let db = null;
+    const request = indexedDB.open("VOVPlusRecorderDB_v2", 1);
+    
+    request.onupgradeneeded = function(e) {
+        db = e.target.result;
+        if (!db.objectStoreNames.contains("records")) {
+            db.createObjectStore("records", { keyPath: "id", autoIncrement: true });
+        }
+    };
+
+    request.onsuccess = function(e) {
+        db = e.target.result;
+        loadSavedRecords();
+    };
+
+    request.onerror = function(e) {
+        console.error("Lỗi database:", e);
+    };
+
+    // --- 1. CHỨC NĂNG PHÁT LIVE HLS ---
+    function changeChannel(url, channelName) {
+        currentChannelText.innerText = `${channelName.toUpperCase()}`;
+        
+        if (Hls.isSupported()) {
+            if (hls) {
+                hls.destroy();
+            }
+            hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(audioEl);
+            hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                audioEl.play().catch(e => console.log("Chờ tương tác từ người dùng"));
+            });
+        } 
+        else if (audioEl.canPlayType('application/vnd.apple.mpegurl')) {
+            audioEl.src = url;
+            audioEl.addEventListener('canplay', function() {
+                audioEl.play();
+            });
+        }
+    }
+
+    channelSelect.addEventListener('change', function() {
+        if (isRecording) {
+            stopRecording();
+        }
+        const selectedUrl = this.value;
+        const selectedText = this.options[this.selectedIndex].text;
+        changeChannel(selectedUrl, selectedText);
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+        changeChannel(channelSelect.value, "VOV1");
+    });
+
+    // --- 2. CHỨC NĂNG GHI ÂM CHƯƠNG TRÌNH (TỐI ƯU CHO FILE DÀI) ---
+    recordBtn.addEventListener('click', function() {
+        if (audioEl.paused || audioEl.ended) {
+            alert("Vui lòng bật phát kênh radio trước khi bấm ghi âm!");
+            return;
+        }
+        if (!isRecording) {
+            startRecording();
+        } else {
+            stopRecording();
+        }
+    });
+
+    // Tạo mảng toàn cục tạm thời chứa các khối dữ liệu nhỏ trong một phiên ghi âm
+    let localChunks = [];
+
+    function startRecording() {
+        localChunks = []; 
+        currentRecordingChannelName = channelSelect.options[channelSelect.selectedIndex].text;
+        
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        if (!streamDest) {
+            streamDest = audioCtx.createMediaStreamDestination();
+            sourceNode = audioCtx.createMediaElementSource(audioEl);
+            sourceNode.connect(audioCtx.destination); 
+            sourceNode.connect(streamDest);          
+        }
+
+        mediaRecorder = new MediaRecorder(streamDest.stream, {
+            mimeType: 'audio/webm;codecs=opus' 
+        });
+
+        mediaRecorder.ondataavailable = function(event) {
+            if (event.data && event.data.size > 0) {
+                localChunks.push(event.data);
+            }
+        };
+
+        mediaRecorder.onstop = function() {
+            if (localChunks.length === 0) return;
+
+            const audioBlob = new Blob(localChunks, { type: 'audio/webm;codecs=opus' });
+            const channelNameSaved = currentRecordingChannelName;
+            const timeString = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateString = new Date().toLocaleDateString('vi-VN');
+            const fullTime = `${timeString} - ${dateString}`;
+
+            const transaction = db.transaction(["records"], "readwrite");
+            const store = transaction.objectStore("records");
+            const recordData = {
+                channel: channelNameSaved,
+                time: fullTime,
+                audioBlob: audioBlob
+            };
+            
+            const addRequest = store.add(recordData);
+            addRequest.onsuccess = function(e) {
+                const insertedId = e.target.result;
+                renderRecordItem(insertedId, audioBlob, channelNameSaved, fullTime);
+            };
+            
+            localChunks = []; // Giải phóng mảng ngay khi lưu thành công
+        };
+
+        // QUAN TRỌNG: Cắt nhỏ dữ liệu mỗi 10000ms (10 giây) đẩy vào event data một lần 
+        // Thay vì để trống mediaRecorder.start() làm đầy bộ nhớ đệm RAM.
+        mediaRecorder.start(10000); 
+        
+        isRecording = true;
+        recordBtn.classList.add('recording');
+        recordBtnText.innerText = "DỪNG GHI ÂM";
+        recordIcon.className = "fa-solid fa-square"; 
+    }
+
+    function stopRecording() {
+        if (mediaRecorder && isRecording) {
+            mediaRecorder.stop();
+            isRecording = false;
+            recordBtn.classList.remove('recording');
+            recordBtnText.innerText = "GHI ÂM CHƯƠNG TRÌNH";
+            recordIcon.className = "fa-solid fa-circle"; 
+        }
+    }
+
+    // --- 3. ĐỌC DỮ LIỆU TỪ INDEXEDDB ---
+    function loadSavedRecords() {
+        const transaction = db.transaction(["records"], "readonly");
+        const store = transaction.objectStore("records");
+        const cursorRequest = store.openCursor(null, "prev");
+        
+        let hasData = false;
+        recordsContainer.innerHTML = ""; // Xóa dữ liệu hiển thị trùng lặp cũ
+        
+        cursorRequest.onsuccess = function(e) {
+            const cursor = e.target.result;
+            if (cursor) {
+                hasData = true;
+                const data = cursor.value;
+                renderRecordItem(data.id, data.audioBlob, data.channel, data.time);
+                cursor.continue();
+            }
+            if (!hasData) {
+                emptyMessage.style.display = 'block';
+            }
+        };
+    }
+
+    // --- 4. HIỂN THỊ ITEM BẢN GHI ---
+    function renderRecordItem(id, blob, channelName, timeAt) {
+        emptyMessage.style.display = 'none';
+
+        // Kiểm tra xem item đã tồn tại chưa để tránh render trùng lặp
+        if (document.getElementById(`record-${id}`)) return;
+
+        const recordItem = document.createElement('div');
+        recordItem.className = 'record-item';
+        recordItem.id = `record-${id}`;
+
+        const audioUrl = URL.createObjectURL(blob);
+        const safeChannelName = channelName.replace(/\s+/g, '_');
+        const downloadFileName = `VOVPlus_${safeChannelName}_${timeAt.replace(/[:\/ -]/g, '_')}.mp3`;
+
+        recordItem.innerHTML = `
+            <div class="record-item-info">
+                <span><i class="fa-solid fa-file-audio"></i> Kênh: <strong>${channelName}</strong></span>
+                <span>${timeAt}</span>
+            </div>
+            <audio controls src="${audioUrl}" style="margin-bottom: 8px; filter:none;"></audio>
+            <div class="record-item-actions">
+                <a href="${audioUrl}" download="${downloadFileName}" class="btn-download">
+                    <i class="fa-solid fa-download"></i> Tải về (.mp3)
+                </a>
+                <button class="btn-delete" onclick="deleteRecord(${id})">
+                    <i class="fa-solid fa-trash-can"></i> Xóa
+                </button>
+            </div>
+        `;
+
+        const audioNode = recordItem.querySelector('audio');
+        audioNode.addEventListener('loadedmetadata', function() {
+            if (audioNode.duration === Infinity) {
+                audioNode.currentTime = 1e101;
+                audioNode.ontimeupdate = function() {
+                    this.ontimeupdate = null;
+                    audioNode.currentTime = 0;
+                };
+            }
+        });
+
+        recordsContainer.insertBefore(recordItem, recordsContainer.firstChild);
+    }
+
+    // --- 5. CHỨC NĂNG XÓA BẢN GHI ---
+    window.deleteRecord = function(id) {
+        if (confirm("Bạn có chắc chắn muốn xóa vĩnh viễn tệp ghi âm này không?")) {
+            const transaction = db.transaction(["records"], "readwrite");
+            const store = transaction.objectStore("records");
+            const deleteRequest = store.delete(id);
+
+            deleteRequest.onsuccess = function() {
+                const element = document.getElementById(`record-${id}`);
+                if (element) {
+                    element.remove();
+                }
+                if (recordsContainer.children.length === 0) {
+                    emptyMessage.style.display = 'block';
+                }
+            };
+            
+            deleteRequest.onerror = function() {
+                alert("Lỗi xảy ra khi xóa dữ liệu!");
+            };
+        }
+    };
+
+    // --- 6. HIỆU ỨNG SÓNG ÂM ---
+    function startVisualizer() {
+        if (visualInterval) clearInterval(visualInterval);
+        visualInterval = setInterval(() => {
+            if (!audioEl.paused && !audioEl.ended) {
+                barElements.forEach(bar => {
+                    const randomHeight = Math.floor(Math.random() * 26) + 4;
+                    bar.style.height = `${randomHeight}px`;
+                });
+            } else {
+                stopVisualizerBars();
+            }
+        }, 100);
+    }
+
+    function stopVisualizerBars() {
+        barElements.forEach(bar => {
+            bar.style.height = '3px';
+        });
+    }
+
+    audioEl.addEventListener('play', startVisualizer);
+    audioEl.addEventListener('pause', stopVisualizerBars);
+    audioEl.addEventListener('waiting', stopVisualizerBars);
+</script>
+
+</body>
+</html>
