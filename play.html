@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đang tải kênh...</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            padding: 30px;
+            background: #1e1e1e;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            max-width: 400px;
+            width: 90%;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border-left-color: #00bcd4;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px auto;
+        }
+        h2 {
+            margin: 0 0 10px 0;
+            font-size: 20px;
+            color: #00bcd4;
+        }
+        p {
+            margin: 0;
+            color: #aaaaaa;
+            font-size: 14px;
+        }
+        .error-title {
+            color: #f44336 !important;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="status">
+        <div class="spinner"></div>
+        <h2>Đang kết nối luồng phát...</h2>
+        <p>Vui lòng đợi trong giây lát</p>
+    </div>
+
+    <script>
+        async function redirect() {
+            // 1. Lấy tham số "vid" hoặc "id" từ URL
+            const params = new URLSearchParams(window.location.search);
+            const vid = params.get('vid') || params.get('id');
+
+            if (!vid) {
+                showError("Lỗi tham số", "Không tìm thấy ID hoặc tên kênh trên liên kết.");
+                return;
+            }
+
+            try {
+                // 2. Tải danh sách kênh từ file channels.json cùng thư mục
+                const response = await fetch('./channels.json');
+                if (!response.ok) {
+                    throw new Error("Không thể tải danh sách kênh.");
+                }
+                const channels = await response.json();
+
+                // 3. Tìm và chuyển hướng
+                if (channels[vid]) {
+                    window.location.replace(channels[vid]);
+                } else {
+                    showError("Kênh không tồn tại", `Kênh "${vid}" chưa được cấu hình hoặc đã bị gỡ.`);
+                }
+            } catch (error) {
+                console.error(error);
+                showError("Lỗi kết nối", "Không thể tải dữ liệu danh sách kênh từ máy chủ.");
+            }
+        }
+
+        function showError(title, message) {
+            document.getElementById('status').innerHTML = `
+                <h2 class="error-title">${title}</h2>
+                <p>${message}</p>
+            `;
+        }
+
+        // Chạy hàm điều hướng
+        redirect();
+    </script>
+</body>
+</html>
