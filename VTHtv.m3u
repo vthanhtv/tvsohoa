@@ -500,9 +500,26 @@ https://kenhdp-vtvgo.vtvdigital.vn/kenhdp/cantho3-720p.m3u8
 https://live.fptplay53.net/fnxsd1/tuyenquang_hls.smil/chunklist.m3u8
 
 
-#EXTINF:-1 group-title="TV360", MƯA ĐỎ
+#EXTINF:-1 group-title="TV360" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/muado.png", MƯA ĐỎ
 https://vip.opstream90.com/20251118/17952_7bf57028/3000k/hls/mixed.m3u8
 
+
+#EXTINF:-1 group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/hanoi.png",Giao Thông Hà Nội
+https://audio-lss.vov.vn/live/giao_thong_ha_noi.m3u8
+#EXTINF:-1 group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/hanoi.png",VOV Giao Thông Hà Nội
+https://play.vovgiaothong.vn/live/gthn/playlist.m3u8
+#EXTINF:-1 group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/hcm.png",VOV Giao Thông Hồ Chí Minh
+https://play.vovgiaothong.vn/live/gthcm/playlist.m3u8
+#EXTINF:-1 group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/mekong.png",VOV Giao Thông Mekong FM90MHz
+https://play.vovgiaothong.vn/live/mekong/playlist.m3u8
+#EXTINF:-1 group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/duyenhai.png",VOV Giao Thông Duyên Hải
+https://play.vovgiaothong.vn/live/duyenhai/playlist.m3u8
+#EXTINF:-1 group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/vov1.png",VOV1
+https://audio-lss.vov.vn/han/live/vov1/audio/haudio-eng.m3u8
+#EXTINF:-1 group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/vov2.png",VOV2
+https://audio-lss.vov.vn/han/live/vov2/audio/haudio-eng.m3u8
+#EXTINF:-1 group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/vov3.png",VOV3
+https://audio-lss.vov.vn/han/live/vov3/audio/haudio-eng.m3u8
 #EXTINF:-1 tvg-id="FM90" group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/FM90.png", FM90
 https://freem3u.xyz/api/live/play.m3u8?vid=9905
 #EXTINF:-1 tvg-id="FM96" group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/FM96.png", FM96
