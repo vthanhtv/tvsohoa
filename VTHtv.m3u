@@ -35,7 +35,7 @@ https://liveh12byt.vtvprime.vn/hls/ANNINHTV/index.m3u8
 https://live.fptplay53.net/fnxhd2/anninhtv_vhls.smil/chunklist_b5000000.m3u8
 #EXTINF:-1 tvg-logo="https://raw.githubusercontent.com/hieu-TQS/LOGO-IPTV/main/QPVN.png" group-title="Thiết yếu",QPTV
 https://liveh12byt.vtvprime.vn/hls/QPTV/index.m3u8
-#EXTINF:-1 tvg-id="QPVN" tvg-logo="https://raw.githubusercontent.com/hieu-TQS/LOGO-IPTV/main/QPVN.png" group-title="Thiết Yếu",QPVN - FPT Play
+#EXTINF:-1 tvg-id="QPVN" tvg-logo="https://raw.githubusercontent.com/hieu-TQS/LOGO-IPTV/main/QPVN.png" group-title="Thiết yếu",QPVN - FPT Play
 https://live.fptplay53.net/fnxhd1/quocphongvnhd_vhls.smil/chunklist_b5000000.m3u8
 
 #EXTINF:-1 tvg-id="youtv" group-title="Thiết yếu" tvg-logo="https://raw.githubusercontent.com/hieu-TQS/LOGO-IPTV/main/YOUTV.png", YouTV
@@ -593,8 +593,6 @@ http://aismile.dpdns.org/play/Xp0xPSl85wdNA55xBqtBGZ3jVwbodnd-XsYnXY4nccw
 
 #EXTINF:-1 tvg-id="sctv22hd" group-title="Dự phòng" tvg-logo="https://img.vtvprime.vn/8EDc4aHKZhga3-JQ72NQf06cwtefrcE_jgxUPiKUA_E/rs:fit:836:468/czM6Ly9wcmQtc24taW1hZ2VzL2NoYW5uZWwvMjk2OTYyYTktOWIwNy00YThmLWE5ZWUtYzY0NmY4YWI2M2Y1LnBuZw==.png" catchup="append" catchup-days="2" catchup-source="/catchup2/829/${start}/${end}/tvid_sctv22hd",SCTV22 TS
 http://aismile.dpdns.org/play/Xp0xPSl85wdNA55xBqtBGXCZRCXXdXK70orNkdxHd9s/ts
-
-
 
 #EXTINF:-1 tvg-id="onsports" group-title="Dự phòng" tvg-logo="https://raw.githubusercontent.com/hieu-TQS/LOGO-IPTV/main/onspot.png", ON Sports MPD
 #KODIPROP:inputstream.adaptive.manifest_type=mpd
