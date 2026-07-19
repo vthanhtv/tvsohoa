@@ -499,10 +499,8 @@ https://kenhdp-vtvgo.vtvdigital.vn/kenhdp/cantho3-720p.m3u8
 #EXTINF:-1 tvg-logo="https://raw.githubusercontent.com/hieu-TQS/LOGO-IPTV/main/TUYENQ.png" group-title="Địa phương",Tuyên Quang
 https://live.fptplay53.net/fnxsd1/tuyenquang_hls.smil/chunklist.m3u8
 
-
 #EXTINF:-1 group-title="TV360" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/muado.png", MƯA ĐỎ
 https://vip.opstream90.com/20251118/17952_7bf57028/3000k/hls/mixed.m3u8
-
 
 #EXTINF:-1 group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/hanoi.png",Giao Thông Hà Nội
 https://audio-lss.vov.vn/live/giao_thong_ha_noi.m3u8
