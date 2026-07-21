@@ -535,4 +535,4 @@ https://freem3u.xyz/api/live/play.m3u8?vid=10039
 #EXTINF:-1 tvg-id="VOH FM92-92,5" group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/VOHFM92.png", VOH FM92.0 - FM92.5
 https://freem3u.xyz/api/live/play.m3u8?vid=10040
 #EXTINF:-1 tvg-id="THLC FM97-92,1" group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/thlc.png", THLC FM97.0 - 92.1
-https://baolaocai.vn/radio
+http://sohoa.truyenthanhthongminh.vn/sohoatinhlaocai
