@@ -499,8 +499,10 @@ https://kenhdp-vtvgo.vtvdigital.vn/kenhdp/cantho3-720p.m3u8
 #EXTINF:-1 tvg-logo="https://raw.githubusercontent.com/hieu-TQS/LOGO-IPTV/main/TUYENQ.png" group-title="Địa phương",Tuyên Quang
 https://live.fptplay53.net/fnxsd1/tuyenquang_hls.smil/chunklist.m3u8
 
+
 #EXTINF:-1 group-title="TV360" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/muado.png", MƯA ĐỎ
 https://vip.opstream90.com/20251118/17952_7bf57028/3000k/hls/mixed.m3u8
+
 
 #EXTINF:-1 group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/hanoi.png",Giao Thông Hà Nội
 https://audio-lss.vov.vn/live/giao_thong_ha_noi.m3u8
@@ -532,3 +534,5 @@ https://freem3u.xyz/api/live/play.m3u8?vid=10038
 https://freem3u.xyz/api/live/play.m3u8?vid=10039
 #EXTINF:-1 tvg-id="VOH FM92-92,5" group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/VOHFM92.png", VOH FM92.0 - FM92.5
 https://freem3u.xyz/api/live/play.m3u8?vid=10040
+#EXTINF:-1 tvg-id="THLC FM97-92,1" group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/thlc.png", THLC FM97.0 - 92.1
+https://baolaocai.vn/radio
