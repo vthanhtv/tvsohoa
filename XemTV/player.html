@@ -3,94 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trình Phát Truyền Hình & Radio</title>
+    <title>Trình Phát TV - EPG & Xem Lại</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; background: #0f172a; color: #fff; display: flex; height: 100vh; overflow: hidden; }
+        body { display: flex; height: 100vh; background-color: #1a1a1a; color: #fff; font-family: Arial, sans-serif; }
+        #main-player { flex: 1; display: flex; flex-direction: column; background: #000; }
+        video { width: 100%; flex: 1; background: #000; }
+        #sidebar { width: 380px; background: #252525; display: flex; flex-direction: column; border-left: 1px solid #333; }
+        .sidebar-header { padding: 15px; background: #1f1f1f; font-weight: bold; font-size: 1.1em; border-bottom: 1px solid #333; }
+        #channelList { flex: 1; overflow-y: auto; }
+        .channel-card { display: flex; align-items: center; padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #333; }
+        .channel-card:hover, .channel-card.active { background: #383838; }
+        .channel-card img { width: 45px; height: 30px; object-fit: contain; margin-right: 12px; background: #111; border-radius: 3px; }
+        .channel-info { flex: 1; }
+        .channel-name { font-weight: bold; font-size: 0.95em; }
+        .channel-group { font-size: 0.8em; color: #aaa; margin-top: 3px; }
         
-        /* Layout chính */
-        .main-container { flex: 1; display: flex; flex-direction: column; background: #000; }
-        .video-wrapper { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; }
-        video { width: 100%; height: 100%; max-height: 100vh; }
-        
-        /* Danh sách kênh bên phải */
-        .sidebar { width: 320px; background: #1e293b; display: flex; flex-direction: column; border-left: 1px solid #334155; }
-        .sidebar-header { padding: 15px; background: #0f172a; font-size: 1.1rem; font-weight: bold; border-bottom: 1px solid #334155; }
-        .channel-list { flex: 1; overflow-y: auto; padding: 10px; }
-        
-        /* Item kênh */
-        .channel-card { display: flex; align-items: center; padding: 10px; margin-bottom: 8px; background: #334155; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
-        .channel-card:hover, .channel-card.active { background: #2563eb; }
-        .channel-card img { width: 45px; height: 30px; object-fit: contain; margin-right: 12px; background: #fff; border-radius: 4px; padding: 2px; }
-        .channel-info { overflow: hidden; }
-        .channel-name { font-size: 0.95rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .channel-group { font-size: 0.75rem; color: #cbd5e1; }
+        /* Phần EPG và Xem lại */
+        #epg-container { height: 250px; background: #1c1c1c; border-top: 2px solid #444; display: flex; flex-direction: column; }
+        .epg-header { padding: 8px 15px; background: #2a2a2a; font-size: 0.9em; font-weight: bold; color: #00bcd4; display: flex; justify-content: space-between; align-items: center; }
+        #epgList { flex: 1; overflow-y: auto; padding: 10px; }
+        .epg-item { padding: 8px; margin-bottom: 6px; background: #282828; border-radius: 4px; font-size: 0.85em; display: flex; justify-content: space-between; align-items: center; }
+        .epg-time { color: #ffca28; font-weight: bold; margin-right: 8px; }
+        .epg-title { flex: 1; }
+        .btn-replay { background: #e50914; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 0.75em; }
+        .btn-replay:hover { background: #ff1e27; }
     </style>
 </head>
 <body>
 
-    <div class="main-container">
-        <div class="video-wrapper">
-            <video id="videoPlayer" controls autoplay></video>
-        </div>
+    <div id="main-player">
+        <video id="videoPlayer" controls></video>
     </div>
 
-    <div class="sidebar">
+    <div id="sidebar">
         <div class="sidebar-header">Danh Sách Kênh</div>
-        <div class="channel-list" id="channelList"></div>
+        <div id="channelList"></div>
+        
+        <!-- Khung Lịch Phát Sóng / Xem Lại -->
+        <div id="epg-container">
+            <div class="epg-header">
+                <span>Lịch Phát Sóng (EPG)</span>
+                <span id="currentChannelName" style="color: #aaa; font-weight: normal; font-size: 0.85em;"></span>
+            </div>
+            <div id="epgList">
+                <div style="color: #777; text-align: center; margin-top: 20px;">Chọn kênh để xem lịch phát sóng</div>
+            </div>
+        </div>
     </div>
 
     <script>
         const video = document.getElementById('videoPlayer');
         const channelListContainer = document.getElementById('channelList');
+        const epgListContainer = document.getElementById('epgList');
+        const currentChannelNameEl = document.getElementById('currentChannelName');
+        
         let hlsPlayer = null;
+        let epgData = null;
 
-        // Cấu hình tối ưu bộ nhớ RAM cho Smart TV
         const tvHlsConfig = {
             maxBufferLength: 15,
             maxMaxBufferLength: 30,
-            maxBufferSize: 10 * 1024 * 1024, // 10MB
+            maxBufferSize: 10 * 1024 * 1024,
             backBufferLength: 10,
             liveSyncDurationCount: 3
         };
 
-        // Hàm phát kênh HLS
-        function playStream(url) {
-            if (Hls.isSupported()) {
-                if (hlsPlayer) {
-                    hlsPlayer.destroy();
-                }
-                hlsPlayer = new Hls(tvHlsConfig);
-                hlsPlayer.loadSource(url);
-                hlsPlayer.attachMedia(video);
-                hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
-                    video.play().catch(e => console.log("Cần tương tác để phát: ", e));
-                });
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                // Hỗ trợ Safari / iOS
-                video.src = url;
-                video.play();
-            }
-        }
-
-        // Hàm đọc và Render file M3U
+        // 1. Tải file M3U
         async function loadM3U() {
             try {
                 const response = await fetch('tvpro.m3u');
-                const text = await response.text();
-                const channels = parseM3U(text);
-                
+                const m3uText = await response.text();
+                const channels = parseM3U(m3uText);
                 renderChannels(channels);
-                if(channels.length > 0) {
-                    playStream(channels[0].url); // Tự động phát kênh đầu tiên
+                if (channels.length > 0) {
+                    selectChannel(channels[0]);
                 }
-            } catch (err) {
-                console.error("Lỗi khi tải danh sách M3U:", err);
+            } catch (error) {
+                console.error("Lỗi tải M3U:", error);
             }
         }
 
-        // Cắt văn bản M3U thành Object
+        // 2. Parse file M3U lấy thêm id epg (tvg-id)
         function parseM3U(m3uText) {
             const lines = m3uText.split('\n');
             const channels = [];
@@ -99,11 +94,13 @@
             lines.forEach(line => {
                 line = line.trim();
                 if (line.startsWith('#EXTINF:')) {
+                    const idMatch = line.match(/tvg-id="(.*?)"/);
                     const logoMatch = line.match(/tvg-logo="(.*?)"/);
                     const groupMatch = line.match(/group-title="(.*?)"/);
                     const nameMatch = line.split(',')[1];
 
                     currentChannel = {
+                        tvgId: idMatch ? idMatch[1] : '',
                         logo: logoMatch ? logoMatch[1] : '',
                         group: groupMatch ? groupMatch[1] : 'Khác',
                         name: nameMatch ? nameMatch.trim() : 'Kênh Không Tên'
@@ -117,7 +114,7 @@
             return channels;
         }
 
-        // Render danh sách ra giao diện
+        // 3. Hiển thị danh sách kênh
         function renderChannels(channels) {
             channelListContainer.innerHTML = '';
             channels.forEach((ch, index) => {
@@ -135,14 +132,82 @@
                 card.addEventListener('click', () => {
                     document.querySelectorAll('.channel-card').forEach(el => el.classList.remove('active'));
                     card.classList.add('active');
-                    playStream(ch.url);
+                    selectChannel(ch);
                 });
 
                 channelListContainer.appendChild(card);
             });
         }
 
-        // Chạy khi trang web được tải xong
+        // 4. Phát kênh & Load EPG
+        function selectChannel(channel) {
+            currentChannelNameEl.innerText = channel.name;
+            playStream(channel.url);
+            loadEPGForChannel(channel.tvgId);
+        }
+
+        function playStream(url) {
+            if (Hls.isSupported()) {
+                if (hlsPlayer) { hlsPlayer.destroy(); }
+                hlsPlayer = new Hls(tvHlsConfig);
+                hlsPlayer.loadSource(url);
+                hlsPlayer.attachMedia(video);
+                hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play().catch(e => console.log("Cần tương tác để phát:", e));
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = url;
+                video.play();
+            }
+        }
+
+        // 5. Tải & hiển thị EPG/Xem lại
+        async function loadEPGForChannel(tvgId) {
+            epgListContainer.innerHTML = '<div style="color: #aaa; text-align: center; padding: 10px;">Đang tải lịch...</div>';
+            
+            if (!tvgId) {
+                epgListContainer.innerHTML = '<div style="color: #777; text-align: center; padding: 10px;">Kênh này không hỗ trợ EPG</div>';
+                return;
+            }
+
+            // Gọi API EPG công khai
+            try {
+                const res = await fetch(`https://vnepg.site/api/epg?channel=${tvgId}`);
+                const data = await res.json();
+                renderEPG(data.programs || []);
+            } catch (err) {
+                epgListContainer.innerHTML = '<div style="color: #777; text-align: center; padding: 10px;">Chưa có dữ liệu EPG cho kênh này</div>';
+            }
+        }
+
+        function renderEPG(programs) {
+            if (!programs || programs.length === 0) {
+                epgListContainer.innerHTML = '<div style="color: #777; text-align: center; padding: 10px;">Không có thông tin lịch phát sóng</div>';
+                return;
+            }
+
+            epgListContainer.innerHTML = '';
+            programs.forEach(prog => {
+                const item = document.createElement('div');
+                item.className = 'epg-item';
+                
+                // Kiểm tra xem chương trình đã qua chưa để hiện nút Xem Lại
+                const isPast = new Date(prog.end) < new Date();
+                const replayBtn = (isPast && prog.catchup_url) 
+                    ? `<button class="btn-replay" onclick="playStream('${prog.catchup_url}')">Xem lại</button>` 
+                    : '';
+
+                item.innerHTML = `
+                    <div>
+                        <span class="epg-time">${prog.start_time} - ${prog.end_time}</span>
+                        <span class="epg-title">${prog.title}</span>
+                    </div>
+                    ${replayBtn}
+                `;
+                epgListContainer.appendChild(item);
+            });
+        }
+
         window.addEventListener('DOMContentLoaded', loadM3U);
     </script>
 </body>
