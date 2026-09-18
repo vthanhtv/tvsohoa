@@ -459,9 +459,9 @@ https://audio-lss.vov.vn/live/vov2.m3u8
 #EXTINF:-1 group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/vov3.png",VOV3
 https://audio-lss.vov.vn/live/vov3.m3u8
 #EXTINF:-1 tvg-id="FM90" group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/FM90.png", FM90
-https://freem3u.xyz/api/live/play.m3u8?vid=9905
-#EXTINF:-1 tvg-id="FM96" group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/FM96.png", FM96
 https://freem3u.xyz/api/live/play.m3u8?vid=9906
+#EXTINF:-1 tvg-id="FM96" group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/FM96.png", FM96
+https://freem3u.xyz/api/live/play.m3u8?vid=9905
 #EXTINF:-1 tvg-id="VOH AM610" group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/VOHAM610.png", VOH AM610
 https://freem3u.xyz/api/live/play.m3u8?vid=10036
 #EXTINF:-1 tvg-id="VOH FM99,9" group-title="Radio" tvg-logo="https://raw.githubusercontent.com/vthanhtv/tvsohoa/refs/heads/main/logo/VOHFM999.png", VOH FM99.9
